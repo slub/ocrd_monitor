@@ -2,9 +2,17 @@
 
 The OCR-D Monitor web application allows monitoring the progress and results of OCR-D jobs.
 It is intended to be used together with the setup found in the [ocrd_kitodo repository](https://github.com/slub/ocrd_kitodo).
-You can find detailed instructions on how to deploy the entire Kitodo-OCR-D stack there.
+You can find detailed instructions on how to deploy the Kitodo/OCR-D stack (entirely or partially) [there](https://slub.github.io/ocrd_kitodo).
 
-In order to work properly, the following environment variables must be set:
+The Monitor web server features
+- (intermediate) results for all current document workspaces (via [OCR-D Browser](https://github.com/hnesk/browse-ocrd))
+- a live log viewer
+- a live job viewer
+- :construction: workflow editor
+
+## Running
+
+In order to work properly, the following **environment variables** must be set:
 
 | Variable            | Description                                                                      |
 | ------------------- | -------------------------------------------------------------------------------- |
@@ -14,6 +22,29 @@ In order to work properly, the following environment variables must be set:
 | MANAGER_KEY         | Path to a private key that can be used to authenticate with the OCR-D Controller |
 | MONITOR_PORT_WEB    | The port at which the OCR-D Monitor will be available on the host                |
 | MONITOR_PORT_LOG    | The port at which the Dozzle logs will be available on the host                  |
+
+### Docker Compose
+
+Ideally, you use the services defined in `docker-compose.yml` by just doing:
+
+    docker compose up -d
+    docker compose down
+
+### Makefile
+
+Alternatively, there is a Makefile with stand-alone Docker calls.
+
+Build or pull the Docker image:
+
+    make build # or docker build
+    make pull # or docker pull ghcr.io/slub/ocrd_monitor
+
+Then run the container – providing the same variables as above:
+
+    make run # or docker run...
+
+You can then open `http://localhost:5000` in your browser (or the server host name and your custom `$MONITOR_PORT_WEB`).
+
 
 ## Testing
 

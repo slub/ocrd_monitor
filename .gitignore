@@ -1,0 +1,4 @@
+*~
+authorized_keys
+__pycache__/
+.python-version

@@ -36,7 +36,7 @@ jobs:
     - name: Build the OCR-D Monitor image and deploy to GitHub Container Repository
       uses: docker/build-push-action@v3
       with:
-        context: ./ocrd_monitor
+        context: .
         push: true
         tags: ${{ env.REGISTRY_PATH }}/ocrd_monitor:latest
         build-args: |

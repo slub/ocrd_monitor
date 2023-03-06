@@ -5,23 +5,44 @@
 {% endblock %}
 {% block content %}
 <style>
+    .container {
+        width: auto;
+        max-width: 100% !important;
+    }
+
     iframe {
         height: 100vh;
         width: 100%;
     }
 </style>
 <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-        const workspaceUrl = "{{ url_for('workspaces.view', workspace=workspace) }}"
-        const pingUrl = "{{ url_for('workspaces.ping', workspace=workspace)}}"
-        const main = document.querySelector("#main-content");
-        const browserProgress = document.querySelector("#browser-viewport-load");
+    function createErrorElement(message) {
+        const error = document.createElement("p");
+        error.innerText = "The connection to the ocrd browser was lost";
+        error.classList.add("notification", "is-danger");
+        return error;
+    }
 
+    document.addEventListener("DOMContentLoaded", async () => {
+        const main = document.querySelector("#main-content");
+
+        const launchUrl = "{{ url_for('workspaces.browse', workspace=workspace) }}";
+        const viewUrl = "{{ url_for('workspaces.view', workspace=workspace) }}";
+        const pingUrl = "{{ url_for('workspaces.ping', workspace=workspace) }}";
+
+        const response = await fetch(launchUrl);
+        if (!response.ok) {
+            const error = createErrorElement("An error occured while loading the workspace");
+            main.appendChild(error);
+            return;
+        }
+
+        const browserProgress = document.querySelector("#browser-viewport-load");
 
         function replaceProgressWithIframe() {
             const browser = document.createElement("iframe");
             browser.setAttribute("id", "browser-viewport");
-            browser.setAttribute("src", workspaceUrl);
+            browser.setAttribute("src", viewUrl);
 
             main.removeChild(browserProgress);
             main.appendChild(browser);
@@ -32,10 +53,7 @@
                  therefore we replace it with a custom function to show an error
             */
             function replaceIframeWithError(message) {
-                const error = document.createElement("p");
-                error.innerText = "The connection to the ocrd browser was lost";
-                error.classList.add("notification", "is-danger");
-
+                const error = createErrorElement("The connection to the ocrd browser was lost");
                 main.removeChild(browser);
                 main.appendChild(error);
             }
@@ -44,15 +62,13 @@
         }
 
         const interval = setInterval(async () => {
-            let result = await fetch(pingUrl);
+            const result = await fetch(pingUrl);
             if (!result.ok) return;
             replaceProgressWithIframe();
             clearInterval(interval);
         }, 500);
     })
 </script>
-{# <iframe id="browser-viewport" src="{{ url_for('workspaces.view', workspace=workspace) }}" frameborder="0"></iframe>
-#}
 
 <progress id="browser-viewport-load" class="progress is-primary" max="100"></progress>
 {% endblock %}

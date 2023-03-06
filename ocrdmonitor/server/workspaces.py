@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from pathlib import Path
 
@@ -15,7 +16,6 @@ from requests.exceptions import ConnectionError
 def create_workspaces(
     templates: Jinja2Templates, factory: OcrdBrowserFactory, workspace_dir: Path
 ) -> APIRouter:
-
     router = APIRouter(prefix="/workspaces")
 
     running_browsers: set[OcrdBrowser] = set()
@@ -33,21 +33,24 @@ def create_workspaces(
             {"request": request, "workspaces": spaces},
         )
 
-    @router.get("/open/{workspace:path}", name="workspaces.open")
-    def open_workspace(request: Request, workspace: str) -> Response:
+    @router.get("/browse/{workspace:path}", name="workspaces.browse")
+    async def browser(request: Request, workspace: str) -> Response:
         workspace_path = workspace_dir / workspace
-
         session_id = request.cookies.setdefault("session_id", str(uuid.uuid4()))
-        response = templates.TemplateResponse(
-            "workspace.html.j2",
-            {"request": request, "workspace": workspace},
-        )
+        response = Response()
         response.set_cookie("session_id", session_id)
 
-        browser = launch_browser(session_id, workspace_path)
+        browser = await launch_browser(session_id, workspace_path)
         redirects.add(session_id, Path(workspace), browser)
 
         return response
+
+    @router.get("/open/{workspace:path}", name="workspaces.open")
+    def open_workspace(request: Request, workspace: str) -> Response:
+        return templates.TemplateResponse(
+            "workspace.html.j2",
+            {"request": request, "workspace": workspace},
+        )
 
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
     def ping_workspace(
@@ -96,8 +99,9 @@ def create_workspaces(
             except ChannelClosed:
                 browser.stop()
 
-    def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
-        browser = ocrdbrowser.launch(
+    async def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
+        browser = await asyncio.to_thread(
+            ocrdbrowser.launch,
             str(workspace),
             session_id,
             factory,

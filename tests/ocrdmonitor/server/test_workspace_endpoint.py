@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from ocrdbrowser import ChannelClosed, OcrdBrowserFactory
 from ocrdmonitor.server.settings import OcrdBrowserSettings
-from tests.fakes import OcrdBrowserFake, OcrdBrowserFakeFactory
+from tests.fakes import OcrdBrowserFakeFactory
 from tests.ocrdbrowser.browserdoubles import BrowserSpy, BrowserSpyFactory
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.fixtures import WORKSPACE_DIR
@@ -44,14 +44,29 @@ def test__workspaces__shows_the_workspace_names_starting_from_workspace_root(
     assert set(texts) == {"a_workspace", "another workspace", "nested/workspace"}
 
 
-def test__open_workspace__passes_full_workspace_path_to_ocrdbrowser(
+def test__browse_workspace__passes_full_workspace_path_to_ocrdbrowser(
     browser_spy: BrowserSpy,
     app: TestClient,
 ) -> None:
-    _ = app.get("/workspaces/open/a_workspace")
+    response = app.get("/workspaces/browse/a_workspace")
 
     assert browser_spy.running is True
     assert browser_spy.workspace() == str(WORKSPACE_DIR / "a_workspace")
+    assert response.status_code == 200
+
+
+def test__browse_workspace__assigns_and_tracks_session_id(
+    browser_spy: BrowserSpy,
+    app: TestClient,
+) -> None:
+    response = app.get("/workspaces/browse/a_workspace")
+    first_session_id = response.cookies.get("session_id")
+
+    response = app.get("/workspaces/browse/a_workspace")
+    second_session_id = response.cookies.get("session_id")
+
+    assert first_session_id is not None
+    assert first_session_id == second_session_id
 
 
 def test__opened_workspace__when_socket_disconnects_on_broadway_side_while_viewing__shuts_down_browser(
@@ -66,7 +81,7 @@ def test__opened_workspace__when_socket_disconnects_on_broadway_side_while_viewi
             raise ChannelClosed()
 
     browser_spy.channel = DisconnectingChannel()
-    _ = app.get("/workspaces/open/a_workspace")
+    _ = app.get("/workspaces/browse/a_workspace")
 
     with app.websocket_connect("/workspaces/view/a_workspace/socket"):
         pass
@@ -75,24 +90,24 @@ def test__opened_workspace__when_socket_disconnects_on_broadway_side_while_viewi
 
 
 @pytest.mark.usefixtures("use_browser_fakes")
-def test__opened_workspace_browser_is_ready__when_pinging__returns_ok(
+def test__browsed_workspace_is_ready__when_pinging__returns_ok(
     app: TestClient,
 ) -> None:
-    _ = app.get("/workspaces/open/a_workspace")
+    _ = app.get("/workspaces/browse/a_workspace")
 
     result = app.get("/workspaces/ping/a_workspace")
 
     assert result.status_code == 200
 
 
-def test__opened_workspace_browser_not_ready__when_pinging__returns_bad_gateway(
+def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
     browser_spy: BrowserSpy,
     app: TestClient,
 ) -> None:
     """
     We're using a browser spy here, because it's not a real server and therefore will not be reachable
     """
-    _ = app.get("/workspaces/open/a_workspace")
+    _ = app.get("/workspaces/browse/a_workspace")
 
     result = app.get("/workspaces/ping/a_workspace")
 

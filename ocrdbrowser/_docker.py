@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import os.path as path
 import subprocess as sp
@@ -38,14 +39,18 @@ class DockerOcrdBrowser:
         cmd = _run_command(
             _docker_run, self._container_name(), self._workspace, self._port.get()
         )
-        cmd.check_returncode()
         self.id = str(cmd.stdout).strip()
 
     def stop(self) -> None:
         cmd = _run_command(
             _docker_stop, self._container_name(), self.workspace(), self._port.get()
         )
-        cmd.check_returncode()
+
+        if cmd.returncode != 0:
+            logging.info(
+                f"Stopping container {self.id} returned exit code {cmd.returncode}"
+            )
+
         self._port.release()
         self.id = None
 

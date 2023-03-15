@@ -1,13 +1,13 @@
 from typing import cast
 
 import ocrdbrowser
-from tests.ocrdbrowser.browserdoubles import BrowserSpy, BrowserSpyFactory
+from tests.ocrdbrowser.browserdoubles import BrowserSpy, BrowserTestDoubleFactory
 
 
 def test__workspace__launch__spawns_new_ocrd_browser() -> None:
     owner = "the-owner"
     workspace = "path/to/workspace"
-    process = ocrdbrowser.launch(workspace, owner, BrowserSpyFactory())
+    process = ocrdbrowser.launch(workspace, owner, BrowserTestDoubleFactory())
 
     process = cast(BrowserSpy, process)
     assert process.running is True
@@ -16,7 +16,7 @@ def test__workspace__launch__spawns_new_ocrd_browser() -> None:
 
 
 def test__workspace__launch_for_different_owners__both_processes_running() -> None:
-    factory = BrowserSpyFactory()
+    factory = BrowserTestDoubleFactory()
 
     first_process = ocrdbrowser.launch("first-path", "first-owner", factory)
     second_process = ocrdbrowser.launch(
@@ -29,10 +29,12 @@ def test__workspace__launch_for_different_owners__both_processes_running() -> No
     assert {p.workspace() for p in processes} == {"first-path", "second-path"}
 
 
-def test__workspace__launch_for_same_owner_and_workspace__does_not_start_new_process() -> None:
+def test__workspace__launch_for_same_owner_and_workspace__does_not_start_new_process() -> (
+    None
+):
     owner = "the-owner"
     workspace = "the-workspace"
-    factory = BrowserSpyFactory()
+    factory = BrowserTestDoubleFactory()
 
     first_process = ocrdbrowser.launch(workspace, owner, factory)
     second_process = ocrdbrowser.launch(workspace, owner, factory, {first_process})

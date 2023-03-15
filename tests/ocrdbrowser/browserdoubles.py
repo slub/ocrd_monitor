@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from textwrap import dedent
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Protocol
 
 from ocrdbrowser import Channel, OcrdBrowser
 
@@ -29,6 +29,10 @@ class BrowserSpy:
         self.owner_name = owner
         self.workspace_path = workspace_path
         self.channel = channel or ChannelDummy()
+
+    def set_owner_and_workspace(self, owner: str, workspace: str) -> None:
+        self.owner_name = owner
+        self.workspace_path = workspace
 
     def address(self) -> str:
         return self._address
@@ -60,12 +64,16 @@ class BrowserSpy:
         )
 
 
-class BrowserSpyFactory:
-    def __init__(self, *processes: BrowserSpy) -> None:
+class BrowserTestDouble(OcrdBrowser, Protocol):
+    def set_owner_and_workspace(self, owner: str, workspace: str) -> None:
+        ...
+
+
+class BrowserTestDoubleFactory:
+    def __init__(self, *processes: BrowserTestDouble) -> None:
         self.proc_iter = iter(processes)
 
     def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         browser = next(self.proc_iter, BrowserSpy())
-        browser.owner_name = owner
-        browser.workspace_path = workspace_path
+        browser.set_owner_and_workspace(owner, workspace_path)
         return browser

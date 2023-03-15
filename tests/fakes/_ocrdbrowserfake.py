@@ -1,14 +1,14 @@
 from types import TracebackType
-from typing import Type
+from typing import AsyncContextManager, Type
 
-from ocrdbrowser import OcrdBrowser
-from tests.ocrdbrowser.browserdoubles import ChannelDummy
+from ocrdbrowser import Channel, OcrdBrowser
+from ocrdbrowser._websocketchannel import WebSocketChannel
 
 from ._backgroundprocess import BackgroundProcess
 from ._broadwayfake import broadway_fake
 
 
-class OcrdBrowserFake:
+class BrowserFake:
     def __init__(self, owner: str = "", workspace: str = "") -> None:
         self._owner: str = owner
         self._workspace: str = workspace
@@ -37,8 +37,8 @@ class OcrdBrowserFake:
         self._running = False
         self._browser.shutdown()
 
-    def open_channel(self):
-        return ChannelDummy()
+    def open_channel(self) -> AsyncContextManager[Channel]:
+        return WebSocketChannel(self.address() + "/socket")
 
     @property
     def broadway_server(self) -> BackgroundProcess:
@@ -53,12 +53,12 @@ class OcrdBrowserFake:
         return self._browser.is_running
 
 
-class OcrdBrowserFakeFactory:
-    def __init__(self, *browsers: OcrdBrowserFake) -> None:
+class BrowserFakeFactory:
+    def __init__(self, *browsers: BrowserFake) -> None:
         self._browsers = set(browsers)
         self._browser_iter = iter(self._browsers)
 
-    def __enter__(self) -> "OcrdBrowserFakeFactory":
+    def __enter__(self) -> "BrowserFakeFactory":
         return self
 
     def __exit__(
@@ -71,6 +71,6 @@ class OcrdBrowserFakeFactory:
             browser.stop()
 
     def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
-        browser = next(self._browser_iter, OcrdBrowserFake(owner, workspace_path))
+        browser = next(self._browser_iter, BrowserFake(owner, workspace_path))
         self._browsers.add(browser)
         return browser

@@ -4,13 +4,14 @@ import asyncio
 import uuid
 from pathlib import Path
 
+import httpx
+
 import ocrdbrowser
 import ocrdmonitor.server.proxy as proxy
 from fastapi import APIRouter, Cookie, Request, Response, WebSocket
 from fastapi.templating import Jinja2Templates
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
 from ocrdmonitor.server.redirect import RedirectMap
-from requests.exceptions import ConnectionError
 
 
 def create_workspaces(
@@ -53,28 +54,28 @@ def create_workspaces(
         )
 
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
-    def ping_workspace(
+    async def ping_workspace(
         request: Request, workspace: str, session_id: str = Cookie(default=None)
     ) -> Response:
         workspace_path = Path(workspace)
         redirect = redirects.get(session_id, workspace_path)
         try:
-            proxy.forward(redirect, str(workspace_path))
+            await proxy.forward(redirect, str(workspace_path))
             return Response(status_code=200)
-        except ConnectionError:
+        except httpx.ConnectError:
             return Response(status_code=502)
 
     # NOTE: It is important that the route path here ends with a slash, otherwise
     #       the reverse routing will not work as broadway.js uses window.location
     #       which points to the last component with a trailing slash.
     @router.get("/view/{workspace:path}/", name="workspaces.view")
-    def workspace_reverse_proxy(
+    async def workspace_reverse_proxy(
         request: Request, workspace: str, session_id: str = Cookie(default=None)
     ) -> Response:
         workspace_path = Path(workspace)
         redirect = redirects.get(session_id, workspace_path)
         try:
-            return proxy.forward(redirect, str(workspace_path))
+            return await proxy.forward(redirect, str(workspace_path))
         except ConnectionError:
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",

@@ -423,7 +423,7 @@ summary = "Module for decorators, wrappers and monkey patching."
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:d91d8b2c71bd2dd8a9d867c0640fb37ae9fc1c91ad93c3ff244f4340f9d064e1"
+content_hash = "sha256:41531e3c394e45bd34b4d98fb20ef889335291b731a867850f266b07050d5f4e"
 
 [metadata.files]
 "anyio 3.6.2" = [

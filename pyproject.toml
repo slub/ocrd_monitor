@@ -10,7 +10,7 @@ authors = [
     { name = "Robert Sachunsky", email = "robert.sachunsky@slub-dresden.de" },
 ]
 dependencies = [
-    "pydantic>=1.10.6",
+    "pydantic[dotenv]>=1.10.6",
     "pydantic[dotenv]",
     "fastapi>=0.95.0",
     "Jinja2>=3.1.2",

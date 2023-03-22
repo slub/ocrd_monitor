@@ -26,9 +26,9 @@ VOLUME /data
 COPY init.sh /init.sh
 COPY ocrdbrowser /usr/local/ocrd-monitor/ocrdbrowser
 COPY ocrdmonitor /usr/local/ocrd-monitor/ocrdmonitor
-COPY requirements.txt /usr/local/ocrd-monitor/requirements.txt
+COPY pyproject.toml /usr/local/ocrd-monitor/pyproject.toml
 
-RUN pip install -r /usr/local/ocrd-monitor/requirements.txt
+RUN pip install /usr/local/ocrd-monitor
 
 WORKDIR /
 CMD ["/init.sh", "/data"]

@@ -3,3 +3,4 @@ authorized_keys
 __pycache__/
 .python-version
 .pdm.toml
+.pdm.lock

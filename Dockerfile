@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.11
 
 ARG VCS_REF
 ARG BUILD_DATE
@@ -28,7 +28,7 @@ COPY ocrdbrowser /usr/local/ocrd-monitor/ocrdbrowser
 COPY ocrdmonitor /usr/local/ocrd-monitor/ocrdmonitor
 COPY pyproject.toml /usr/local/ocrd-monitor/pyproject.toml
 
-RUN pip3 install /usr/local/ocrd-monitor
+RUN pip install /usr/local/ocrd-monitor
 
 WORKDIR /
 CMD ["/init.sh", "/data"]

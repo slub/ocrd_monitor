@@ -38,6 +38,11 @@ nox = [
 [tool.mypy]
 plugins = ["pydantic.mypy"]
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: mark test as integration test",
+]
+
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"

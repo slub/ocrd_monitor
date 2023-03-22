@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import asyncio
 from types import TracebackType
 from typing import AsyncContextManager, Type
 
@@ -29,13 +32,13 @@ class BrowserFake:
     def workspace(self) -> str:
         return self._workspace
 
-    def start(self) -> None:
+    async def start(self) -> None:
         self._running = True
-        self._browser.launch()
+        await asyncio.to_thread(self._browser.launch)
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         self._running = False
-        self._browser.shutdown()
+        await asyncio.to_thread(self._browser.shutdown)
 
     def open_channel(self) -> AsyncContextManager[Channel]:
         return WebSocketChannel(self.address() + "/socket")
@@ -58,17 +61,18 @@ class BrowserFakeFactory:
         self._browsers = set(browsers)
         self._browser_iter = iter(self._browsers)
 
-    def __enter__(self) -> "BrowserFakeFactory":
+    async def __aenter__(self) -> "BrowserFakeFactory":
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: Type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        for browser in self._browsers:
-            browser.stop()
+        async with asyncio.TaskGroup() as group:
+            for browser in self._browsers:
+                group.create_task(browser.stop())
 
     def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         browser = next(self._browser_iter, BrowserFake(owner, workspace_path))

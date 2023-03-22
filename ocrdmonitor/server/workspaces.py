@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import uuid
 from pathlib import Path
 
@@ -76,7 +75,7 @@ def create_workspaces(
         redirect = redirects.get(session_id, workspace_path)
         try:
             return await proxy.forward(redirect, str(workspace_path))
-        except ConnectionError:
+        except httpx.ConnectError:
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
                 {"request": request, "workspace": workspace},
@@ -103,12 +102,10 @@ def create_workspaces(
                 pass
 
     async def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
-        return await asyncio.to_thread(
-            ocrdbrowser.launch, str(workspace), session_id, factory
-        )
+        return await ocrdbrowser.launch(str(workspace), session_id, factory)
 
     async def stop_browser(browser: OcrdBrowser) -> None:
-        await asyncio.to_thread(browser.stop)
+        await browser.stop()
         key = Path(browser.workspace()).relative_to(workspace_dir)
         redirects.remove(browser.owner(), key)
 

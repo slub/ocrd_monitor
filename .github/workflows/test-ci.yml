@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-      - uses: actions/checkout@v3
+        uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -32,12 +32,12 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies using pip
-      - run: pip install -e ".[dev]"
+        run: pip install -e ".[dev]"
 
       - name: Checking static types using mypy
-      - run: mypy --strict ocrdbrowser ocrdmonitor
+        run: mypy --strict ocrdbrowser ocrdmonitor
 
       - name: Testing using pytest
-      - run: |
+        run: |
           pip install pytest-clarity # coloured diff output
           pytest tests -m "not integration"

@@ -8,7 +8,7 @@ import httpx
 
 import ocrdbrowser
 import ocrdmonitor.server.proxy as proxy
-from fastapi import APIRouter, Cookie, Request, Response, WebSocket
+from fastapi import APIRouter, Cookie, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
 from ocrdmonitor.server.redirect import RedirectMap
@@ -19,7 +19,6 @@ def create_workspaces(
 ) -> APIRouter:
     router = APIRouter(prefix="/workspaces")
 
-    running_browsers: set[OcrdBrowser] = set()
     redirects = RedirectMap()
 
     @router.get("/", name="workspaces.list")
@@ -36,13 +35,14 @@ def create_workspaces(
 
     @router.get("/browse/{workspace:path}", name="workspaces.browse")
     async def browser(request: Request, workspace: str) -> Response:
-        workspace_path = workspace_dir / workspace
         session_id = request.cookies.setdefault("session_id", str(uuid.uuid4()))
         response = Response()
         response.set_cookie("session_id", session_id)
 
-        browser = await launch_browser(session_id, workspace_path)
-        redirects.add(session_id, Path(workspace), browser)
+        if (session_id, Path(workspace)) not in redirects:
+            workspace_path = workspace_dir / workspace
+            browser = await launch_browser(session_id, workspace_path)
+            redirects.add(session_id, Path(workspace), browser)
 
         return response
 
@@ -98,18 +98,18 @@ def create_workspaces(
                 while True:
                     await proxy.tunnel(channel, websocket)
             except ChannelClosed:
-                browser.stop()
+                await stop_browser(browser)
+            except WebSocketDisconnect:
+                pass
 
     async def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
-        browser = await asyncio.to_thread(
-            ocrdbrowser.launch,
-            str(workspace),
-            session_id,
-            factory,
-            running_browsers,
+        return await asyncio.to_thread(
+            ocrdbrowser.launch, str(workspace), session_id, factory
         )
 
-        running_browsers.add(browser)
-        return browser
+    async def stop_browser(browser: OcrdBrowser) -> None:
+        await asyncio.to_thread(browser.stop)
+        key = Path(browser.workspace()).relative_to(workspace_dir)
+        redirects.remove(browser.owner(), key)
 
     return router

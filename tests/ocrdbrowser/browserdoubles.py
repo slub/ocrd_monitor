@@ -43,10 +43,10 @@ class BrowserSpy:
     def owner(self) -> str:
         return self.owner_name
 
-    def start(self) -> None:
+    async def start(self) -> None:
         self.running = True
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         self.running = False
 
     @asynccontextmanager

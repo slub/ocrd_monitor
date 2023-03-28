@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 
 from os import path
 from typing import AsyncContextManager, Protocol
@@ -26,10 +27,10 @@ class OcrdBrowser(Protocol):
     def workspace(self) -> str:
         ...
 
-    def start(self) -> None:
+    async def start(self) -> None:
         ...
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         ...
 
     def open_channel(self) -> AsyncContextManager[Channel]:
@@ -44,7 +45,7 @@ class OcrdBrowserFactory(Protocol):
 BrowserProcesses = set[OcrdBrowser]
 
 
-def launch(
+async def launch(
     workspace_path: str,
     owner: str,
     browser_factory: OcrdBrowserFactory,
@@ -57,7 +58,7 @@ def launch(
     if in_workspace:
         return in_workspace.pop()
 
-    return start_process(browser_factory, workspace_path, owner)
+    return await start_process(browser_factory, workspace_path, owner)
 
 
 def in_same_workspace(
@@ -80,23 +81,24 @@ def filter_owned(owner: str, running_processes: BrowserProcesses) -> BrowserProc
     return {p for p in running_processes if p.owner() == owner}
 
 
-def stop_all(owned_processes: BrowserProcesses) -> None:
-    for process in owned_processes:
-        process.stop()
+async def stop_all(owned_processes: BrowserProcesses) -> None:
+    async with asyncio.TaskGroup() as group:
+        for p in owned_processes:
+            group.create_task(p.stop())
 
 
-def stop_owned_in_workspace(
+async def stop_owned_in_workspace(
     owner: str, workspace: str, browsers: set[OcrdBrowser]
 ) -> set[OcrdBrowser]:
     owned = filter_owned(owner, browsers)
     in_workspace = in_same_workspace(workspace, owned)
-    stop_all(in_workspace)
+    await stop_all(in_workspace)
     return in_workspace
 
 
-def start_process(
+async def start_process(
     process_factory: OcrdBrowserFactory, workspace_path: str, owner: str
 ) -> OcrdBrowser:
     process = process_factory(owner, workspace_path)
-    process.start()
+    await process.start()
     return process

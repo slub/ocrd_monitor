@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Iterator
-from httpx import Response
+from typing import AsyncIterator
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory
 from ocrdmonitor.server.settings import OcrdBrowserSettings
-from tests.fakes import BrowserFakeFactory, BrowserFake, BROWSERFAKE_HEADER
+from tests.fakes import BROWSERFAKE_HEADER, BrowserFake, BrowserFakeFactory
 from tests.ocrdbrowser.browserdoubles import (
     BrowserSpy,
     BrowserTestDoubleFactory,
@@ -42,22 +43,22 @@ def browser_spy(monkeypatch: pytest.MonkeyPatch) -> BrowserSpy:
     return browser_spy
 
 
-@pytest.fixture
-def use_browser_fakes(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+@pytest_asyncio.fixture
+async def use_browser_fakes(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[None]:
     fake_factory = BrowserFakeFactory()
 
     def factory(_: OcrdBrowserSettings) -> OcrdBrowserFactory:
         return fake_factory
 
     monkeypatch.setattr(OcrdBrowserSettings, "factory", factory)
-    with fake_factory:
+    async with fake_factory:
         yield
 
 
-@pytest.fixture
-def factory__disconnecting_spy__then_browser_fake(
+@pytest_asyncio.fixture
+async def factory__disconnecting_spy__then_browser_fake(
     monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[None]:
+) -> AsyncIterator[None]:
     spy = BrowserSpy(channel=DisconnectingChannel())
     fake = BrowserFake()
     factory = BrowserTestDoubleFactory(spy, fake)
@@ -65,7 +66,7 @@ def factory__disconnecting_spy__then_browser_fake(
 
     yield
 
-    fake.stop()
+    await fake.stop()
 
 
 def assert_is_fake_browser_response(actual: Response) -> None:

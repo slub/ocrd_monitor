@@ -1,0 +1,59 @@
+name: Test CI
+
+on:
+  # Triggers the workflow on push and pull request events but only for pull_requests on the main branch
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  # Allows you to run this workflow manually
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  mypy:
+    runs-on: ubuntu-latest
+   
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies using pip
+        run: pip install -e ".[dev]"
+
+      - name: Checking static types using mypy
+        run: mypy --strict ocrdbrowser ocrdmonitor
+
+
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies using pip
+        run: pip install -e ".[dev]"
+
+      - name: Testing using pytest
+        run: |
+          pip install pytest-clarity # coloured diff output
+          pytest tests -m "not integration"

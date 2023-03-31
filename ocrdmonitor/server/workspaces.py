@@ -3,7 +3,6 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-import httpx
 
 import ocrdbrowser
 import ocrdmonitor.server.proxy as proxy
@@ -61,7 +60,7 @@ def create_workspaces(
         try:
             await proxy.forward(redirect, str(workspace_path))
             return Response(status_code=200)
-        except httpx.ConnectError:
+        except ConnectionError:
             return Response(status_code=502)
 
     # NOTE: It is important that the route path here ends with a slash, otherwise
@@ -75,7 +74,7 @@ def create_workspaces(
         redirect = redirects.get(session_id, workspace_path)
         try:
             return await proxy.forward(redirect, str(workspace_path))
-        except httpx.ConnectError:
+        except ConnectionError:
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
                 {"request": request, "workspace": workspace},
@@ -92,7 +91,7 @@ def create_workspaces(
     async def communicate_with_browser_until_closed(
         websocket: WebSocket, browser: OcrdBrowser
     ) -> None:
-        async with browser.open_channel() as channel:
+        async with browser.client().open_channel() as channel:
             try:
                 while True:
                     await proxy.tunnel(channel, websocket)

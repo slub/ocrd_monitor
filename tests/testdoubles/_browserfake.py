@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from types import TracebackType
-from typing import AsyncContextManager, Type
+from typing import Type
 
-from ocrdbrowser import Channel, OcrdBrowser
-from ocrdbrowser._websocketchannel import WebSocketChannel
+
+from ocrdbrowser import HttpBrowserClient, OcrdBrowser, OcrdBrowserClient
 
 from ._backgroundprocess import BackgroundProcess
 from ._broadwayfake import broadway_fake
@@ -32,6 +32,9 @@ class BrowserFake:
     def workspace(self) -> str:
         return self._workspace
 
+    def client(self) -> OcrdBrowserClient:
+        return HttpBrowserClient(self.address())
+
     async def start(self) -> None:
         self._running = True
         await asyncio.to_thread(self._browser.launch)
@@ -39,9 +42,6 @@ class BrowserFake:
     async def stop(self) -> None:
         self._running = False
         await asyncio.to_thread(self._browser.shutdown)
-
-    def open_channel(self) -> AsyncContextManager[Channel]:
-        return WebSocketChannel(self.address() + "/socket")
 
     @property
     def broadway_server(self) -> BackgroundProcess:
@@ -54,27 +54,3 @@ class BrowserFake:
     @property
     def is_server_running(self) -> bool:
         return self._browser.is_running
-
-
-class BrowserFakeFactory:
-    def __init__(self, *browsers: BrowserFake) -> None:
-        self._browsers = set(browsers)
-        self._browser_iter = iter(self._browsers)
-
-    async def __aenter__(self) -> "BrowserFakeFactory":
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: Type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        async with asyncio.TaskGroup() as group:
-            for browser in self._browsers:
-                group.create_task(browser.stop())
-
-    def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
-        browser = next(self._browser_iter, BrowserFake(owner, workspace_path))
-        self._browsers.add(browser)
-        return browser

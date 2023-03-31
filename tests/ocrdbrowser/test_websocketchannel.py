@@ -2,10 +2,9 @@ import asyncio
 from typing import Any, Coroutine, Protocol
 
 import pytest
-from ocrdbrowser import Channel, ChannelClosed
-from ocrdbrowser._websocketchannel import WebSocketChannel
 
-from tests.fakes import BackgroundProcess, broadway_fake
+from ocrdbrowser import Channel, ChannelClosed, HttpBrowserClient
+from tests.testdoubles import BackgroundProcess, broadway_fake
 
 
 async def send(channel: Channel) -> None:
@@ -22,6 +21,7 @@ class CommunicationFunction(Protocol):
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 @pytest.mark.parametrize("comm_function", [send, receive])
 async def test__channel__losing_connection_while_communicating__raises_channel_closed(
     comm_function: CommunicationFunction,
@@ -29,8 +29,9 @@ async def test__channel__losing_connection_while_communicating__raises_channel_c
     server = broadway_fake("")
     await asyncio.to_thread(server.launch)
 
+    sut = HttpBrowserClient("http://localhost:7000")
     with pytest.raises(ChannelClosed):
-        async with WebSocketChannel("http://localhost:7000/socket") as channel:
+        async with sut.open_channel() as channel:
             await shutdown_server(server)
             await comm_function(channel)
 

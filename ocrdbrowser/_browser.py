@@ -2,19 +2,8 @@ from __future__ import annotations
 import asyncio
 
 from os import path
+from pathlib import PurePosixPath
 from typing import AsyncContextManager, Protocol
-
-
-class ChannelClosed(RuntimeError):
-    pass
-
-
-class Channel(Protocol):
-    async def receive_bytes(self) -> bytes:
-        ...
-
-    async def send_bytes(self, data: bytes) -> None:
-        ...
 
 
 class OcrdBrowser(Protocol):
@@ -27,10 +16,30 @@ class OcrdBrowser(Protocol):
     def workspace(self) -> str:
         ...
 
+    def client(self) -> OcrdBrowserClient:
+        ...
+
     async def start(self) -> None:
         ...
 
     async def stop(self) -> None:
+        ...
+
+
+class ChannelClosed(RuntimeError):
+    ...
+
+
+class Channel(Protocol):
+    async def receive_bytes(self) -> bytes:
+        ...
+
+    async def send_bytes(self, data: bytes) -> None:
+        ...
+
+
+class OcrdBrowserClient(Protocol):
+    async def get(self, resource: str) -> bytes:
         ...
 
     def open_channel(self) -> AsyncContextManager[Channel]:

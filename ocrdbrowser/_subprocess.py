@@ -4,11 +4,11 @@ import asyncio
 import logging
 import os
 from shutil import which
-from typing import AsyncContextManager, Optional
+from typing import Optional
 
-from ._browser import Channel, OcrdBrowser
+from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._port import Port
-from ._websocketchannel import WebSocketChannel
+from ._client import HttpBrowserClient
 
 BROADWAY_BASE_PORT = 8080
 
@@ -72,8 +72,8 @@ class SubProcessOcrdBrowser:
             finally:
                 self._localport.release()
 
-    def open_channel(self) -> AsyncContextManager[Channel]:
-        return WebSocketChannel(self.address() + "/socket")
+    def client(self) -> OcrdBrowserClient:
+        return HttpBrowserClient(self.address())
 
 
 class SubProcessOcrdBrowserFactory:

@@ -3,6 +3,7 @@ from ._browser import (
     Channel,
     ChannelClosed,
     OcrdBrowser,
+    OcrdBrowserClient,
     OcrdBrowserFactory,
     filter_owned,
     in_other_workspaces,
@@ -14,13 +15,16 @@ from ._browser import (
 from ._docker import DockerOcrdBrowserFactory
 from ._port import NoPortsAvailableError
 from ._subprocess import SubProcessOcrdBrowserFactory
+from ._client import HttpBrowserClient
 
 __all__ = [
     "Channel",
     "ChannelClosed",
     "DockerOcrdBrowserFactory",
+    "HttpBrowserClient",
     "NoPortsAvailableError",
     "OcrdBrowser",
+    "OcrdBrowserClient",
     "OcrdBrowserFactory",
     "SubProcessOcrdBrowserFactory",
     "filter_owned",

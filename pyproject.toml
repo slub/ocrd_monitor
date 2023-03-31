@@ -43,6 +43,10 @@ markers = [
     "integration: mark test as integration test",
 ]
 
+[tool.pdm.scripts]
+test = "pytest tests -m 'not integration'"
+test-integration = "pytest tests"
+
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"

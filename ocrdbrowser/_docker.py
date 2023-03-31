@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import os.path as path
-from typing import Any, AsyncContextManager
+from typing import Any
 
-from ._browser import Channel, OcrdBrowser
+from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._port import Port
-from ._websocketchannel import WebSocketChannel
+from ._client import HttpBrowserClient
 
 _docker_run = "docker run --rm -d --name {} -v {}:/data -p {}:8085 ocrd-browser:latest"
 _docker_stop = "docker stop {}"
@@ -58,8 +58,8 @@ class DockerOcrdBrowser:
         self._port.release()
         self.id = None
 
-    def open_channel(self) -> AsyncContextManager[Channel]:
-        return WebSocketChannel(self.address() + "/socket")
+    def client(self) -> OcrdBrowserClient:
+        return HttpBrowserClient(self.address())
 
     def _container_name(self) -> str:
         workspace = path.basename(self.workspace())

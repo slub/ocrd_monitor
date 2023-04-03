@@ -31,22 +31,18 @@ class DisconnectingChannel:
     params=(BrowserSpy, pytest.param(BrowserFake, marks=pytest.mark.integration))
 )
 async def iterating_factory(
-    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+    request: pytest.FixtureRequest,
 ) -> AsyncIterator[BrowserTestDoubleFactory]:
     async with patch_factory(
-        monkeypatch, IteratingBrowserTestDoubleFactory(default_browser=request.param)
+        IteratingBrowserTestDoubleFactory(default_browser=request.param)
     ) as factory:
         yield factory
 
 
 @pytest_asyncio.fixture
-async def singleton_browser_spy(
-    monkeypatch: pytest.MonkeyPatch,
-) -> AsyncIterator[BrowserSpy]:
+async def singleton_browser_spy() -> AsyncIterator[BrowserSpy]:
     browser_spy = BrowserSpy()
-    async with patch_factory(
-        monkeypatch, SingletonBrowserTestDoubleFactory(browser_spy)
-    ):
+    async with patch_factory(SingletonBrowserTestDoubleFactory(browser_spy)):
         yield browser_spy
 
 

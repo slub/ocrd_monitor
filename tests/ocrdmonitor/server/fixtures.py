@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator, Iterator
+from unittest.mock import patch
 
 import pytest
 import uvicorn
@@ -36,11 +37,11 @@ def create_settings() -> Settings:
 
 @asynccontextmanager
 async def patch_factory(
-    monkeypatch: pytest.MonkeyPatch, factory: BrowserTestDoubleFactory
+    factory: BrowserTestDoubleFactory,
 ) -> AsyncIterator[BrowserTestDoubleFactory]:
     async with factory:
-        monkeypatch.setattr(OcrdBrowserSettings, "factory", lambda _: factory)
-        yield factory
+        with patch.object(OcrdBrowserSettings, "factory", lambda _: factory):
+            yield factory
 
 
 @pytest.fixture

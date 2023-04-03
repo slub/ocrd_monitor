@@ -32,15 +32,14 @@ def create_workspaces(
         )
 
     @router.get("/browse/{workspace:path}", name="workspaces.browse")
-    async def browser(request: Request, workspace: str) -> Response:
+    async def browser(request: Request, workspace: Path) -> Response:
         session_id = request.cookies.setdefault("session_id", str(uuid.uuid4()))
         response = Response()
         response.set_cookie("session_id", session_id)
 
-        if (session_id, Path(workspace)) not in redirects:
-            workspace_path = workspace_dir / workspace
-            browser = await launch_browser(session_id, workspace_path)
-            redirects.add(session_id, Path(workspace), browser)
+        if (session_id, workspace) not in redirects:
+            browser = await launch_browser(session_id, workspace)
+            redirects.add(session_id, workspace, browser)
 
         return response
 
@@ -53,12 +52,11 @@ def create_workspaces(
 
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
     async def ping_workspace(
-        request: Request, workspace: str, session_id: str = Cookie(default=None)
+        request: Request, workspace: Path, session_id: str = Cookie(default=None)
     ) -> Response:
-        workspace_path = Path(workspace)
-        redirect = redirects.get(session_id, workspace_path)
+        redirect = redirects.get(session_id, workspace)
         try:
-            await proxy.forward(redirect, str(workspace_path))
+            await proxy.forward(redirect, str(workspace))
             return Response(status_code=200)
         except ConnectionError:
             return Response(status_code=502)
@@ -68,12 +66,11 @@ def create_workspaces(
     #       which points to the last component with a trailing slash.
     @router.get("/view/{workspace:path}/", name="workspaces.view")
     async def workspace_reverse_proxy(
-        request: Request, workspace: str, session_id: str = Cookie(default=None)
+        request: Request, workspace: Path, session_id: str = Cookie(default=None)
     ) -> Response:
-        workspace_path = Path(workspace)
-        redirect = redirects.get(session_id, workspace_path)
+        redirect = redirects.get(session_id, workspace)
         try:
-            return await proxy.forward(redirect, str(workspace_path))
+            return await proxy.forward(redirect, str(workspace))
         except ConnectionError:
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
@@ -101,7 +98,8 @@ def create_workspaces(
                 pass
 
     async def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
-        return await ocrdbrowser.launch(str(workspace), session_id, factory)
+        full_workspace_path = workspace_dir / workspace
+        return await ocrdbrowser.launch(str(full_workspace_path), session_id, factory)
 
     async def stop_browser(browser: OcrdBrowser) -> None:
         await browser.stop()

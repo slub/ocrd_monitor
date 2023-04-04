@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import httpx
 
 from fastapi import Response
 from ocrdbrowser import Channel
@@ -11,14 +10,8 @@ from .redirect import BrowserRedirect
 
 async def forward(redirect: BrowserRedirect, url: str) -> Response:
     redirect_url = redirect.redirect_url(url)
-    async with httpx.AsyncClient() as client:
-        response = await client.get(redirect_url)
-
-    return Response(
-        content=response.content,
-        status_code=response.status_code,
-        headers=response.headers,
-    )
+    resource = await redirect.browser.client().get(redirect_url)
+    return Response(content=resource)
 
 
 async def tunnel(

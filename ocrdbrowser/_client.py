@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Type, cast
+from typing import AsyncContextManager, Type, cast
 
+import httpx
 from websockets import client
 from websockets.exceptions import ConnectionClosed
 from websockets.legacy.client import WebSocketClientProtocol
 from websockets.typing import Subprotocol
 
-from ._browser import ChannelClosed
+from ._browser import Channel, ChannelClosed
 
 
 class WebSocketChannel:
@@ -58,3 +59,16 @@ class WebSocketChannel:
             await self._open_connection.send(data)
         except ConnectionClosed:
             raise ChannelClosed()
+
+
+class HttpBrowserClient:
+    def __init__(self, address: str) -> None:
+        self.address = address
+
+    async def get(self, resource: str) -> bytes:
+        async with httpx.AsyncClient(base_url=self.address) as client:
+            response = await client.get(resource)
+            return response.content
+
+    def open_channel(self) -> AsyncContextManager[Channel]:
+        return WebSocketChannel(self.address + "/socket")

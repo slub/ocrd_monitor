@@ -3,21 +3,8 @@ from fastapi import FastAPI, Response, WebSocket
 from fastapi.responses import HTMLResponse
 from starlette.websockets import WebSocketDisconnect
 
+from tests.testdoubles._browserspy import html_template
 from ._backgroundprocess import BackgroundProcess
-
-
-BROWSERFAKE_HEADER = "OCRD BROWSER"
-
-
-html_template = """
-<!DOCTYPE html>
-<html lang="en">
-<body>
-    <h1>OCRD BROWSER</h1>
-    <p>{workspace}</p>
-</body>
-</html>
-"""
 
 
 def _create_app(workspace: str) -> FastAPI:
@@ -25,7 +12,7 @@ def _create_app(workspace: str) -> FastAPI:
 
     @app.get("/")
     def index() -> Response:
-        return HTMLResponse(content=html_template.format(workspace=workspace))
+        return HTMLResponse(content=html_template)
 
     @app.websocket("/socket")
     async def socket(websocket: WebSocket) -> None:

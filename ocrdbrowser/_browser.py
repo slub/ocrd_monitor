@@ -2,7 +2,6 @@ from __future__ import annotations
 import asyncio
 
 from os import path
-from pathlib import PurePosixPath
 from typing import AsyncContextManager, Protocol
 
 

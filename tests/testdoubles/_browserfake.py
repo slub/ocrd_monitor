@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from types import TracebackType
-from typing import Type
 
 
-from ocrdbrowser import HttpBrowserClient, OcrdBrowser, OcrdBrowserClient
+from ocrdbrowser import HttpBrowserClient, OcrdBrowserClient
 
 from ._backgroundprocess import BackgroundProcess
 from ._broadwayfake import broadway_fake

@@ -1,13 +1,10 @@
 from __future__ import annotations
-import asyncio
 
 from contextlib import asynccontextmanager
-from pathlib import PurePosixPath
 from textwrap import dedent
-from types import TracebackType
-from typing import AsyncGenerator, Callable, Protocol, Self, Type
+from typing import AsyncGenerator, Type
 
-from ocrdbrowser import Channel, OcrdBrowser, OcrdBrowserClient
+from ocrdbrowser import Channel, OcrdBrowserClient
 
 Browser_Heading = "OCRD BROWSER"
 

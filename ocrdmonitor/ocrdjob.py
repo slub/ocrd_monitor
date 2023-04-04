@@ -8,8 +8,8 @@ from typing import Any, NamedTuple, Type
 _KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path], str]] = {
     "PID": (int, "pid"),
     "RETVAL": (int, "return_code"),
-    "PROCESS_ID": (int, "process_id"),
-    "TASK_ID": (int, "task_id"),
+    "PROCESS_ID": (str, "process_id"),
+    "TASK_ID": (str, "task_id"),
     "PROCESS_DIR": (Path, "processdir"),
     "WORKDIR": (Path, "workdir"),
     "WORKFLOW": (Path, "workflow_file"),
@@ -35,8 +35,8 @@ def _into_dict(content: str) -> dict[str, int | str | Path]:
 
 
 class KitodoProcessDetails(NamedTuple):
-    process_id: int
-    task_id: int
+    process_id: str
+    task_id: str
     processdir: Path
 
 

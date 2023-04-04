@@ -13,6 +13,7 @@
 <table id="running-jobs" class="table">
     <thead>
         <tr>
+            <th>TSTART</th>
             <th>TASK ID</th>
             <th>PROCESS ID</th>
             <th>WORKFLOW</th>
@@ -26,6 +27,7 @@
     <tbody>
         {% for job in running_jobs: %}
         <tr>
+            <td>{{ job.ocrd_job.time_created }}</td>
             <td>{{ job.ocrd_job.kitodo_details.task_id }}</td>
             <td>{{ job.ocrd_job.kitodo_details.process_id }}</td>
             <td><a href="#">{{ job.ocrd_job.workflow }}</a></td>
@@ -42,6 +44,7 @@
 <table id="completed-jobs" class="table">
     <thead>
         <tr>
+            <th>TSTOP</th>
             <th>TASK ID</th>
             <th>PROCESS ID</th>
             <th>WORKFLOW</th>
@@ -53,6 +56,7 @@
     <tbody>
         {% for job in completed_jobs: %}
         <tr>
+            <td>{{ job.time_terminated }}</td>
             <td>{{ job.kitodo_details.task_id }}</td>
             <td>{{ job.kitodo_details.process_id }}</td>
             <td>{% if job.workflow is defined %}<a href="{{ url_for('workflows.detail', path=job.workflow_file) }}">{{ job.workflow }}</a>{% endif %}</td>

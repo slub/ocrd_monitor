@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -49,12 +50,13 @@ def create_jobs(templates: Jinja2Templates, controller: OcrdController) -> APIRo
         job_status = [controller.status_for(job) for job in running]
         running_jobs = wrap_in_running_job_type(running, job_status)
 
+        now = datetime.now(timezone.utc)
         return templates.TemplateResponse(
             "jobs.html.j2",
             {
                 "request": request,
-                "running_jobs": running_jobs,
-                "completed_jobs": completed,
+                "running_jobs": sorted(running_jobs, key=lambda x: x.ocrd_job.time_created or now),
+                "completed_jobs": sorted(completed, key=lambda x: x.time_terminated or now),
             },
         )
 

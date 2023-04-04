@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -8,6 +9,8 @@ from typing import Any, NamedTuple, Type
 _KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path], str]] = {
     "PID": (int, "pid"),
     "RETVAL": (int, "return_code"),
+    "TIME_CREATED": (datetime.fromisoformat, "time_created"),
+    "TIME_TERMINATED": (datetime.fromisoformat, "time_terminated"),
     "PROCESS_ID": (str, "process_id"),
     "TASK_ID": (str, "task_id"),
     "PROCESS_DIR": (Path, "processdir"),
@@ -58,6 +61,9 @@ class OcrdJob:
 
     pid: int | None = None
     return_code: int | None = None
+
+    time_created: datetime | None = None
+    time_terminated: datetime | None = None
 
     @classmethod
     def from_str(cls, content: str) -> "OcrdJob":

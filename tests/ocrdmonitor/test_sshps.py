@@ -10,9 +10,6 @@ from tests.ocrdmonitor.sshcontainer import (
     get_process_group_from_container,
     SSHConfig,
     KEYDIR,
-    # we need to import the fixtures below in order to use them in the test
-    ssh_keys,
-    openssh_server,
 )
 
 T = TypeVar("T")

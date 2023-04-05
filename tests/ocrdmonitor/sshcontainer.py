@@ -48,7 +48,7 @@ def ensure_known_hosts_in_ci() -> None:
     if not os.getenv("GITHUB_ACTIONS"):
         return
 
-    known_hosts = Path("~/.ssh/known_hosts")
+    known_hosts = Path("/home/runner/.ssh/known_hosts")
     known_hosts.parent.mkdir(parents=True, exist_ok=True)
     known_hosts.touch(exist_ok=True)
 

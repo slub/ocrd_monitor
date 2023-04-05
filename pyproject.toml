@@ -47,6 +47,10 @@ markers = [
 test = "pytest tests -m 'not integration'"
 test-integration = "pytest tests"
 
+[[tool.mypy.overrides]]
+module = "testcontainers.*"
+ignore_missing_imports = true
+
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"

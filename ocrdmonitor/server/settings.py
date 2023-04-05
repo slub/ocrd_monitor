@@ -53,7 +53,13 @@ class OcrdBrowserSettings(BaseModel):
     @validator("port_range", pre=True)
     def validator(cls, value: str | tuple[int, int]) -> tuple[int, int]:
         if isinstance(value, str):
-            split_values = value.replace("[", "").replace("]", "").split(",")
+            split_values = (
+                value.replace("[", "")
+                .replace("]", "")
+                .replace("(", "")
+                .replace(")", "")
+                .split(",")
+            )
             int_pair = tuple(int(v) for v in split_values)
         else:
             int_pair = value

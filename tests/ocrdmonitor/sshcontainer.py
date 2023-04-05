@@ -1,8 +1,9 @@
+import os
 import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator
+from typing import Iterator, Self, Type
 
 import pytest
 from testcontainers.general import DockerContainer
@@ -18,6 +19,38 @@ class SSHConfig:
     port: int
     user: str
     keyfile: Path
+
+
+@dataclass
+class KeyPair:
+    private: Path
+    public: Path
+
+    @classmethod
+    def generate(cls: Type[Self], name: str = "id.rsa") -> Self:
+        KEYDIR.mkdir(parents=True, exist_ok=True)
+        private_key_path = KEYDIR / name
+        public_key_path = KEYDIR / f"{name}.pub"
+        subprocess.run(
+            f"ssh-keygen -t rsa -P '' -f {private_key_path.as_posix()}",
+            shell=True,
+            check=True,
+        )
+
+        return cls(private_key_path, public_key_path)
+
+    def unlink(self) -> None:
+        self.private.unlink(missing_ok=True)
+        self.public.unlink(missing_ok=True)
+
+
+def ensure_known_hosts_in_ci() -> None:
+    if not os.getenv("GITHUB_ACTIONS"):
+        return
+
+    known_hosts = Path("~/.ssh/known_hosts")
+    known_hosts.parent.mkdir(parents=True, exist_ok=True)
+    known_hosts.touch(exist_ok=True)
 
 
 def remove_existing_host_key() -> None:
@@ -39,28 +72,20 @@ def get_process_group_from_container(container: DockerContainer) -> int:
 
 
 @pytest.fixture
-def ssh_keys() -> Generator[tuple[Path, Path], None, None]:
-    KEYDIR.mkdir(parents=True, exist_ok=True)
-    private_key = KEYDIR / "id.rsa"
-    public_key = KEYDIR / "id.rsa.pub"
+def ssh_keys() -> Iterator[KeyPair]:
+    ensure_known_hosts_in_ci()
+    keypair = KeyPair.generate()
 
-    subprocess.run(
-        f"ssh-keygen -t rsa -P '' -f {private_key.as_posix()}", shell=True, check=True
-    )
+    yield keypair
 
-    yield private_key, public_key
-
-    private_key.unlink()
-    public_key.unlink()
+    keypair.unlink()
 
 
 @pytest.fixture
-def openssh_server(
-    ssh_keys: tuple[Path, Path]
-) -> Generator[DockerContainer, None, None]:
+def openssh_server(ssh_keys: KeyPair) -> Iterator[DockerContainer]:
     remove_existing_host_key()
-    _, public_key = ssh_keys
-    with configure_container(public_key) as container:
+    keypair = ssh_keys
+    with configure_container(keypair.public) as container:
         time.sleep(1)  # wait for ssh server to start
         yield container
 

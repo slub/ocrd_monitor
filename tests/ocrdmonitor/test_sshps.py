@@ -14,6 +14,7 @@ from tests.ocrdmonitor.sshcontainer import (
     openssh_server,
 )
 
+
 @pytest.mark.integration
 def test_ps_over_ssh__returns_list_of_process_status(
     openssh_server: DockerContainer,

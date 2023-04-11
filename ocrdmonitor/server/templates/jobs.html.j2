@@ -9,6 +9,12 @@
 {% endblock %}
 
 {% block content %}
+<script>
+    function killjob(pid) {
+    /* todo: log into the Manager and kill this process ... */
+        window.alert("Not implemented yet")
+    }
+</script>
 <h2 class="title">Active Jobs</h2>
 <table id="running-jobs" class="table">
     <thead>
@@ -22,6 +28,7 @@
             <th>% CPU</th>
             <th>MB RSS</th>
             <th>DURATION</th>
+            <th>ACTION</th>
         </tr>
     </thead>
     <tbody>
@@ -36,6 +43,7 @@
             <td>{{ job.process_status.percent_cpu }}</td>
             <td>{{ job.process_status.memory }}</td>
             <td>{{ job.process_status.cpu_time }}</td>
+            <td><button onclick="killjob({{ job.process_status.pid }})">Kill!</button></td>
         </tr>
         {% endfor %}
     </tbody>

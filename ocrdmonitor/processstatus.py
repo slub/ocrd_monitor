@@ -10,9 +10,12 @@ PS_CMD = "ps -s `cat /data/{}/ocrd.pid` -o pid,state,%cpu,rss,cputime --no-heade
 
 
 class ProcessState(Enum):
+    # see ps(1)#PROCESS_STATE_CODES
     RUNNING = "R"
     SLEEPING = "S"
+    SLEEPIO = "D"
     STOPPED = "T"
+    TRACING = "t"
     ZOMBIE = "Z"
     UNKNOWN = "?"
 

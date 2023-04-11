@@ -6,7 +6,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, Callable, NamedTuple, Type
 
-_KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path] | Callable[[str], datetime.date], str]] = {
+_KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path] | Callable[[str], datetime], str]] = {
     "PID": (int, "pid"),
     "RETVAL": (int, "return_code"),
     "TIME_CREATED": (datetime.fromisoformat, "time_created"),

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 
-PS_CMD = "ps -g {} -o pid,state,%cpu,rss,cputime --no-headers"
+PS_CMD = "ps -s `cat /data/{}/ocrd.pid` -o pid,state,%cpu,rss,cputime --no-headers"
 
 
 class ProcessState(Enum):
@@ -48,11 +49,12 @@ class ProcessStatus:
 
         return [parse_line(line) for line in lines]
 
-
-def run(group: int) -> list[ProcessStatus]:
-    cmd = PS_CMD.format(group)
+# only used in tests!
+def run(remotedir: str) -> list[ProcessStatus]:
+    cmd = PS_CMD.format(remotedir)
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-
+    if result.returncode > 0:
+        logging.error(f"checking status of process for {remotedir} failed: {result.stdout} {result.stderr}")
     return ProcessStatus.from_ps_output(result.stdout)
 
 

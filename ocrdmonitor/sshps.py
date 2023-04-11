@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
 from typing import Protocol
@@ -19,23 +20,23 @@ _SSH = (
 )
 
 
-def process_status(config: SSHConfig, process_group: int) -> list[ProcessStatus]:
-    ssh_cmd = _build_ssh_command(config, process_group)
+def process_status(config: SSHConfig, remotedir: str) -> list[ProcessStatus]:
+    ssh_cmd = _build_ssh_command(config, remotedir)
 
     result = subprocess.run(
         ssh_cmd,
         shell=True,
-        universal_newlines=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        text=True,
+        capture_output=True,
         encoding="utf-8",
     )
-
+    if result.returncode > 0:
+        logging.error(f"checking status of process for {remotedir} failed: {result.stderr}")
     return ProcessStatus.from_ps_output(result.stdout)
 
 
-def _build_ssh_command(config: SSHConfig, process_group: int) -> str:
-    ps_cmd = PS_CMD.format(process_group or "")
+def _build_ssh_command(config: SSHConfig, remotedir: str) -> str:
+    ps_cmd = PS_CMD.format(remotedir)
     return _SSH.format(
         port=config.port,
         keyfile=config.keyfile,

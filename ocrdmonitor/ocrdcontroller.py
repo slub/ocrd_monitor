@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Protocol
 
 from ocrdmonitor.ocrdjob import OcrdJob
-from ocrdmonitor.processstatus import ProcessStatus
+from ocrdmonitor.processstatus import ProcessStatus, ProcessState
 
 if sys.version_info >= (3, 10):
     from typing import TypeGuard
@@ -15,7 +15,7 @@ else:
 
 
 class ProcessQuery(Protocol):
-    def __call__(self, process_group: int) -> list[ProcessStatus]:
+    def __call__(self, remotedir: str) -> list[ProcessStatus]:
         ...
 
 
@@ -50,8 +50,11 @@ class OcrdController:
         if ocrd_job.pid is None:
             return None
 
-        process_statuses = self._process_query(ocrd_job.pid)
-        matching_statuses = (
-            status for status in process_statuses if status.pid == ocrd_job.pid
-        )
-        return next(matching_statuses, None)
+        process_statuses = self._process_query(ocrd_job.remotedir)
+
+        for status in process_statuses:
+            if status.state == ProcessState.RUNNING:
+                return status
+        if len(process_statuses) > 0:
+            return process_statuses[0]
+        return None

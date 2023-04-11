@@ -21,7 +21,7 @@ _KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path] | Callable[[str], da
 }
 
 
-def _into_dict(content: str) -> dict[str, int | str | Path]:
+def _into_dict(content: str) -> dict[str, int | str | Path | datetime]:
     result_dict = {}
     lines = content.splitlines()
     for line in lines:

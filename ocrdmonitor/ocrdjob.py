@@ -4,9 +4,9 @@ from datetime import datetime
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Any, NamedTuple, Type
+from typing import Any, Callable, NamedTuple, Type
 
-_KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path] | Type[datetime.date], str]] = {
+_KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path] | Callable[[str], datetime.date], str]] = {
     "PID": (int, "pid"),
     "RETVAL": (int, "return_code"),
     "TIME_CREATED": (datetime.fromisoformat, "time_created"),

@@ -90,9 +90,7 @@ def patch_process_query(
     monkeypatch: pytest.MonkeyPatch, expected_status: ProcessStatus
 ) -> None:
     def make_process_query(self: OcrdControllerSettings) -> ProcessQuery:
-        def process_query_stub(process_group: int) -> list[ProcessStatus]:
-            if process_group != expected_status.pid:
-                raise ValueError(f"Unexpected process group {process_group}")
+        def process_query_stub(remotedir: str) -> list[ProcessStatus]:
             return [expected_status]
 
         return process_query_stub

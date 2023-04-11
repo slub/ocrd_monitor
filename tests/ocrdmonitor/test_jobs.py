@@ -21,8 +21,8 @@ CONTROLLER={controller_address}
 
 JOB_TEMPLATE = OcrdJob(
     kitodo_details=KitodoProcessDetails(
-        process_id=5432,
-        task_id=45989,
+        process_id="5432",
+        task_id="45989",
         processdir=Path("/data/5432"),
     ),
     workdir=Path("ocr-d/data/5432"),

@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from ocrdmonitor.processstatus import ProcessState, ProcessStatus, run
+from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 
 PS_OUTPUT = """
         1  Ss   0.0  3872 01:12:46

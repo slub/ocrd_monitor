@@ -104,6 +104,7 @@ def assert_lists_completed_job(
     texts = collect_texts_from_job_table(response.content, "completed-jobs")
 
     assert texts == [
+        str(completed_job.time_terminated),
         str(completed_job.kitodo_details.task_id),
         str(completed_job.kitodo_details.process_id),
         completed_job.workflow_file.name,
@@ -121,6 +122,7 @@ def assert_lists_running_job(
     texts = collect_texts_from_job_table(response.content, "running-jobs")
 
     assert texts == [
+        str(running_job.time_created),
         str(running_job.kitodo_details.task_id),
         str(running_job.kitodo_details.process_id),
         running_job.workflow_file.name,
@@ -133,7 +135,7 @@ def assert_lists_running_job(
 
 
 def collect_texts_from_job_table(content: bytes, table_id: str) -> list[str]:
-    selector = f"#{table_id} td:not(:has(a)), #{table_id} td > a"
+    selector = f"#{table_id} td:not(:has(a)):not(:has(button)), #{table_id} td > a"
     return scraping.parse_texts(content, selector)
 
 

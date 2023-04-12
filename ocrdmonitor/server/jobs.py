@@ -55,8 +55,14 @@ def create_jobs(templates: Jinja2Templates, controller: OcrdController) -> APIRo
             "jobs.html.j2",
             {
                 "request": request,
-                "running_jobs": sorted(running_jobs, key=lambda x: x.ocrd_job.time_created or now),
-                "completed_jobs": sorted(completed, key=lambda x: x.time_terminated or now),
+                "running_jobs": sorted(
+                    running_jobs,
+                    key=lambda x: x.ocrd_job.time_created or now,
+                ),
+                "completed_jobs": sorted(
+                    completed,
+                    key=lambda x: x.time_terminated or now,
+                ),
             },
         )
 

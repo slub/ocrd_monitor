@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-import subprocess
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
@@ -51,14 +49,6 @@ class ProcessStatus:
             return []
 
         return [parse_line(line) for line in lines]
-
-# only used in tests!
-def run(remotedir: str) -> list[ProcessStatus]:
-    cmd = PS_CMD.format(remotedir)
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    if result.returncode > 0:
-        logging.error(f"checking status of process for {remotedir} failed: {result.stdout} {result.stderr}")
-    return ProcessStatus.from_ps_output(result.stdout)
 
 
 def _cpu_time_to_seconds(cpu_time: str) -> int:

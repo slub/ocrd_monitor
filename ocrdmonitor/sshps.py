@@ -31,7 +31,9 @@ def process_status(config: SSHConfig, remotedir: str) -> list[ProcessStatus]:
         encoding="utf-8",
     )
     if result.returncode > 0:
-        logging.error(f"checking status of process for {remotedir} failed: {result.stderr}")
+        logging.error(
+            f"checking status of process for {remotedir} failed: {result.stderr}"
+        )
     return ProcessStatus.from_ps_output(result.stdout)
 
 

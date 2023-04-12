@@ -37,7 +37,7 @@
             <td>{{ job.ocrd_job.time_created }}</td>
             <td>{{ job.ocrd_job.kitodo_details.task_id }}</td>
             <td>{{ job.ocrd_job.kitodo_details.process_id }}</td>
-            <td><a href="#">{{ job.ocrd_job.workflow }}</a></td>
+            <td><a href="{{ url_for('workflows.detail', path=job.ocrd_job.workflow_file) }}">{{ job.ocrd_job.workflow }}</a></td>
             <td>{{ job.process_status.pid }}</td>
             <td>{{ job.process_status.state }}</td>
             <td>{{ job.process_status.percent_cpu }}</td>
@@ -67,7 +67,7 @@
             <td>{{ job.time_terminated }}</td>
             <td>{{ job.kitodo_details.task_id }}</td>
             <td>{{ job.kitodo_details.process_id }}</td>
-            <td>{% if job.workflow is defined %}<a href="{{ url_for('workflows.detail', path=job.workflow_file) }}">{{ job.workflow }}</a>{% endif %}</td>
+            <td><a href="{{ url_for('workflows.detail', path=job.workflow_file) }}">{{ job.workflow }}</a></td>
             <td>{{ job.return_code }} {% if job.return_code == 0 %}(SUCCESS){% else %}(FAILURE){% endif %}</td>
             <td><a href="{{ url_for('workspaces.open', workspace=job.workdir)}}">{{ job.kitodo_details.processdir.name }}</a></td>
             <td>

@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 
-PS_CMD = "ps -s `cat /data/{}/ocrd.pid` -o pid,state,%cpu,rss,cputime --no-headers"
-
 
 class ProcessState(Enum):
     # see ps(1)#PROCESS_STATE_CODES
@@ -28,6 +26,14 @@ class ProcessStatus:
     percent_cpu: float
     memory: int
     cpu_time: timedelta
+
+    @classmethod
+    def remotedir_to_pid_cmd(cls, remotedir: str) -> str:
+        return "cat /data/{}/ocrd.pid".format(remotedir)
+
+    @classmethod
+    def session_pid_to_ps_cmd(cls, pid: str) -> str:
+        return "ps -s {} -o pid,state,%cpu,rss,cputime --no-headers".format(pid)
 
     @classmethod
     def from_ps_output(cls, ps_output: str) -> list["ProcessStatus"]:

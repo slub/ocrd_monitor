@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Protocol
 
-from ocrdmonitor.processstatus import PS_CMD, ProcessStatus
+from ocrdmonitor.processstatus import ProcessStatus
 
 
 class SSHConfig(Protocol):
@@ -14,17 +14,11 @@ class SSHConfig(Protocol):
     user: str
     keyfile: Path
 
-
-_SSH = (
-    "ssh -o StrictHostKeyChecking=no -i '{keyfile}' -p {port} {user}@{host} '{ps_cmd}'"
-)
-
-
 def process_status(config: SSHConfig, remotedir: str) -> list[ProcessStatus]:
-    ssh_cmd = _build_ssh_command(config, remotedir)
-
+    pid_cmd = ProcessStatus.remotedir_to_pid_cmd(remotedir)
+    pid_cmd = _build_ssh_command(config, pid_cmd)
     result = subprocess.run(
-        ssh_cmd,
+        pid_cmd,
         shell=True,
         text=True,
         capture_output=True,
@@ -32,17 +26,31 @@ def process_status(config: SSHConfig, remotedir: str) -> list[ProcessStatus]:
     )
     if result.returncode > 0:
         logging.error(
-            f"checking status of process for {remotedir} failed: {result.stderr}"
+            f"looking up PID of process for {remotedir} failed: {result.stderr}"
         )
+        return []
+    pid = result.stdout.strip()
+    ps_cmd = ProcessStatus.session_pid_to_ps_cmd(pid)
+    ps_cmd = _build_ssh_command(config, ps_cmd)
+    result = subprocess.run(
+        ps_cmd,
+        shell=True,
+        text=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    if result.returncode > 0:
+        logging.error(
+            f"checking status of process {pid} failed: {result.stderr}"
+        )
+        return []
     return ProcessStatus.from_ps_output(result.stdout)
 
-
-def _build_ssh_command(config: SSHConfig, remotedir: str) -> str:
-    ps_cmd = PS_CMD.format(remotedir)
-    return _SSH.format(
+def _build_ssh_command(config: SSHConfig, cmd: str) -> str:
+    return "ssh -o StrictHostKeyChecking=no -i '{keyfile}' -p {port} {user}@{host} '{cmd}'".format(
         port=config.port,
         keyfile=config.keyfile,
         user=config.user,
         host=config.host,
-        ps_cmd=ps_cmd,
+        cmd=cmd,
     )

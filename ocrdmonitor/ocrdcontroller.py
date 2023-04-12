@@ -47,7 +47,7 @@ class OcrdController:
             return None
 
     def status_for(self, ocrd_job: OcrdJob) -> ProcessStatus | None:
-        if ocrd_job.pid is None:
+        if ocrd_job.remotedir is None:
             return None
 
         process_statuses = self._process_query(ocrd_job.remotedir)

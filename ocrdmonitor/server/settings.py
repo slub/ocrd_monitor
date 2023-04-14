@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import atexit
-from functools import partial
 from pathlib import Path
 from typing import Literal
 
@@ -12,8 +11,8 @@ from ocrdbrowser import (
 )
 from pydantic import BaseModel, BaseSettings, validator
 
-from ocrdmonitor.ocrdcontroller import ProcessQuery
-from ocrdmonitor.sshps import process_status
+from ocrdmonitor.ocrdcontroller import RemoteServer
+from ocrdmonitor.sshremote import SSHRemote
 
 
 class OcrdControllerSettings(BaseModel):
@@ -23,8 +22,8 @@ class OcrdControllerSettings(BaseModel):
     port: int = 22
     keyfile: Path = Path.home() / ".ssh" / "id_rsa"
 
-    def process_query(self) -> ProcessQuery:
-        return partial(process_status, self)
+    def controller_remote(self) -> RemoteServer:
+        return SSHRemote(self)
 
 
 class OcrdLogViewSettings(BaseModel):

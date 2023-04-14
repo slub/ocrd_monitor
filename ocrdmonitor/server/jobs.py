@@ -43,11 +43,11 @@ def create_jobs(templates: Jinja2Templates, controller: OcrdController) -> APIRo
     router = APIRouter(prefix="/jobs")
 
     @router.get("/", name="jobs")
-    def jobs(request: Request) -> Response:
+    async def jobs(request: Request) -> Response:
         jobs = controller.get_jobs()
         running, completed = split_into_running_and_completed(jobs)
 
-        job_status = [controller.status_for(job) for job in running]
+        job_status = [await controller.status_for(job) for job in running]
         running_jobs = wrap_in_running_job_type(running, job_status)
 
         now = datetime.now(timezone.utc)

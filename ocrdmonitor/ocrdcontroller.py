@@ -4,6 +4,7 @@ import sys
 import logging
 from pathlib import Path
 from typing import Protocol
+from ocrdmonitor import sshremote
 
 from ocrdmonitor.ocrdjob import OcrdJob
 from ocrdmonitor.processstatus import ProcessStatus, ProcessState
@@ -14,16 +15,19 @@ else:
     from typing_extensions import TypeGuard
 
 
-class ProcessQuery(Protocol):
-    def __call__(self, remotedir: str) -> list[ProcessStatus]:
+class RemoteServer(Protocol):
+    async def read_file(self, path: str) -> str:
+        ...
+
+    async def process_status(self, process_group: int) -> list[ProcessStatus]:
         ...
 
 
 class OcrdController:
-    def __init__(self, process_query: ProcessQuery, job_dir: Path) -> None:
-        self._process_query = process_query
+    def __init__(self, remote: RemoteServer, job_dir: Path) -> None:
+        self._remote = remote
         self._job_dir = job_dir
-        logging.info(f"process_query: {process_query}")
+        logging.info(f"process_query: {remote}")
         logging.info(f"job_dir: {job_dir}")
 
     def get_jobs(self) -> list[OcrdJob]:
@@ -46,15 +50,18 @@ class OcrdController:
             logging.warning(f"found invalid job file: {job_file.name} - {e}")
             return None
 
-    def status_for(self, ocrd_job: OcrdJob) -> ProcessStatus | None:
+    async def status_for(self, ocrd_job: OcrdJob) -> ProcessStatus | None:
         if ocrd_job.remotedir is None:
             return None
 
-        process_statuses = self._process_query(ocrd_job.remotedir)
+        pid = await self._remote.read_file(f"/data/{ocrd_job.remotedir}/ocrd.pid")
+        process_statuses = await self._remote.process_status(int(pid))
 
         for status in process_statuses:
             if status.state == ProcessState.RUNNING:
                 return status
-        if len(process_statuses) > 0:
+
+        if process_statuses:
             return process_statuses[0]
+
         return None

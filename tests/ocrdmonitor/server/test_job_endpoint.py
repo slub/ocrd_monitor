@@ -8,7 +8,7 @@ from typing import Generator
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
-from ocrdmonitor.ocrdcontroller import ProcessQuery
+from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.ocrdjob import OcrdJob
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.server.settings import OcrdControllerSettings
@@ -37,7 +37,7 @@ def running_ocrd_job(
     expected_status = make_status(pid)
     running_job = replace(JOB_TEMPLATE, pid=pid)
     jobfile = write_job_file_for(running_job)
-    patch_process_query(monkeypatch, expected_status)
+    patch_controller_remote(monkeypatch, expected_status)
 
     yield running_job, expected_status
 
@@ -86,16 +86,20 @@ def make_status(pid: int) -> ProcessStatus:
     return expected_status
 
 
-def patch_process_query(
+def patch_controller_remote(
     monkeypatch: pytest.MonkeyPatch, expected_status: ProcessStatus
 ) -> None:
-    def make_process_query(self: OcrdControllerSettings) -> ProcessQuery:
-        def process_query_stub(remotedir: str) -> list[ProcessStatus]:
-            return [expected_status]
+    def make_remote_stub(self: OcrdControllerSettings) -> RemoteServer:
+        class RemoteStub:
+            async def read_file(self, path: str) -> str:
+                return str(expected_status.pid)
 
-        return process_query_stub
+            async def process_status(self, process_group: int) -> list[ProcessStatus]:
+                return [expected_status]
 
-    monkeypatch.setattr(OcrdControllerSettings, "process_query", make_process_query)
+        return RemoteStub()
+
+    monkeypatch.setattr(OcrdControllerSettings, "controller_remote", make_remote_stub)
 
 
 def assert_lists_completed_job(

@@ -28,15 +28,11 @@ class ProcessStatus:
     cpu_time: timedelta
 
     @classmethod
-    def remotedir_to_pid_cmd(cls, remotedir: str) -> str:
-        return "cat /data/{}/ocrd.pid".format(remotedir)
+    def shell_command(cls, pid: int) -> str:
+        return f"ps -s {pid} -o pid,state,%cpu,rss,cputime --no-headers"
 
     @classmethod
-    def session_pid_to_ps_cmd(cls, pid: str) -> str:
-        return "ps -s {} -o pid,state,%cpu,rss,cputime --no-headers".format(pid)
-
-    @classmethod
-    def from_ps_output(cls, ps_output: str) -> list["ProcessStatus"]:
+    def from_shell_output(cls, ps_output: str) -> list["ProcessStatus"]:
         def is_error(lines: list[str]) -> bool:
             return lines[0].startswith("error:")
 

@@ -4,19 +4,14 @@ import asyncio
 
 from fastapi import Response
 from ocrdbrowser import Channel
-from requests import request
 
 from .redirect import BrowserRedirect
 
 
-def forward(redirect: BrowserRedirect, url: str) -> Response:
+async def forward(redirect: BrowserRedirect, url: str) -> Response:
     redirect_url = redirect.redirect_url(url)
-    response = request("GET", redirect_url, allow_redirects=False)
-    return Response(
-        content=response.content,
-        status_code=response.status_code,
-        headers=response.headers,
-    )
+    resource = await redirect.browser.client().get(redirect_url)
+    return Response(content=resource)
 
 
 async def tunnel(

@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import asyncio
 import uuid
 from pathlib import Path
 
+
 import ocrdbrowser
 import ocrdmonitor.server.proxy as proxy
-from fastapi import APIRouter, Cookie, Request, Response, WebSocket
+from fastapi import APIRouter, Cookie, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
 from ocrdmonitor.server.redirect import RedirectMap
-from requests.exceptions import ConnectionError
 
 
 def create_workspaces(
@@ -18,7 +17,6 @@ def create_workspaces(
 ) -> APIRouter:
     router = APIRouter(prefix="/workspaces")
 
-    running_browsers: set[OcrdBrowser] = set()
     redirects = RedirectMap()
 
     @router.get("/", name="workspaces.list")
@@ -34,14 +32,14 @@ def create_workspaces(
         )
 
     @router.get("/browse/{workspace:path}", name="workspaces.browse")
-    async def browser(request: Request, workspace: str) -> Response:
-        workspace_path = workspace_dir / workspace
+    async def browser(request: Request, workspace: Path) -> Response:
         session_id = request.cookies.setdefault("session_id", str(uuid.uuid4()))
         response = Response()
         response.set_cookie("session_id", session_id)
 
-        browser = await launch_browser(session_id, workspace_path)
-        redirects.add(session_id, Path(workspace), browser)
+        if (session_id, workspace) not in redirects:
+            browser = await launch_browser(session_id, workspace)
+            redirects.add(session_id, workspace, browser)
 
         return response
 
@@ -53,13 +51,12 @@ def create_workspaces(
         )
 
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
-    def ping_workspace(
-        request: Request, workspace: str, session_id: str = Cookie(default=None)
+    async def ping_workspace(
+        request: Request, workspace: Path, session_id: str = Cookie(default=None)
     ) -> Response:
-        workspace_path = Path(workspace)
-        redirect = redirects.get(session_id, workspace_path)
+        redirect = redirects.get(session_id, workspace)
         try:
-            proxy.forward(redirect, str(workspace_path))
+            await proxy.forward(redirect, str(workspace))
             return Response(status_code=200)
         except ConnectionError:
             return Response(status_code=502)
@@ -68,13 +65,12 @@ def create_workspaces(
     #       the reverse routing will not work as broadway.js uses window.location
     #       which points to the last component with a trailing slash.
     @router.get("/view/{workspace:path}/", name="workspaces.view")
-    def workspace_reverse_proxy(
-        request: Request, workspace: str, session_id: str = Cookie(default=None)
+    async def workspace_reverse_proxy(
+        request: Request, workspace: Path, session_id: str = Cookie(default=None)
     ) -> Response:
-        workspace_path = Path(workspace)
-        redirect = redirects.get(session_id, workspace_path)
+        redirect = redirects.get(session_id, workspace)
         try:
-            return proxy.forward(redirect, str(workspace_path))
+            return await proxy.forward(redirect, str(workspace))
         except ConnectionError:
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
@@ -92,23 +88,22 @@ def create_workspaces(
     async def communicate_with_browser_until_closed(
         websocket: WebSocket, browser: OcrdBrowser
     ) -> None:
-        async with browser.open_channel() as channel:
+        async with browser.client().open_channel() as channel:
             try:
                 while True:
                     await proxy.tunnel(channel, websocket)
             except ChannelClosed:
-                browser.stop()
+                await stop_browser(browser)
+            except WebSocketDisconnect:
+                pass
 
     async def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
-        browser = await asyncio.to_thread(
-            ocrdbrowser.launch,
-            str(workspace),
-            session_id,
-            factory,
-            running_browsers,
-        )
+        full_workspace_path = workspace_dir / workspace
+        return await ocrdbrowser.launch(str(full_workspace_path), session_id, factory)
 
-        running_browsers.add(browser)
-        return browser
+    async def stop_browser(browser: OcrdBrowser) -> None:
+        await browser.stop()
+        key = Path(browser.workspace()).relative_to(workspace_dir)
+        redirects.remove(browser.owner(), key)
 
     return router

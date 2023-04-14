@@ -3,29 +3,20 @@ from fastapi import FastAPI, Response, WebSocket
 from fastapi.responses import HTMLResponse
 from starlette.websockets import WebSocketDisconnect
 
+from tests.testdoubles._browserspy import html_template
 from ._backgroundprocess import BackgroundProcess
 
 
-html_template = """
-<!DOCTYPE html>
-<html lang="en">
-<body>
-    <h1>{workspace}</h1>
-</body>
-</html>
-"""
-
-
-def _run_app(workspace: str) -> None:
+def _create_app(workspace: str) -> FastAPI:
     app = FastAPI()
 
     @app.get("/")
     def index() -> Response:
-        return HTMLResponse(content=html_template.format(workspace=workspace))
+        return HTMLResponse(content=html_template)
 
     @app.websocket("/socket")
     async def socket(websocket: WebSocket) -> None:
-        await websocket.accept()
+        await websocket.accept("broadway")
         try:
             while True:
                 echo = await websocket.receive_bytes()
@@ -33,6 +24,11 @@ def _run_app(workspace: str) -> None:
         except WebSocketDisconnect:
             pass
 
+    return app
+
+
+def _run_app(workspace: str) -> None:
+    app = _create_app(workspace)
     uvicorn.run(app, host="localhost", port=7000)
 
 

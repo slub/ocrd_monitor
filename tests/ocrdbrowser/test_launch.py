@@ -1,40 +1,51 @@
 from typing import cast
 
+import pytest
+
 import ocrdbrowser
-from tests.ocrdbrowser.browserdoubles import BrowserSpy, BrowserSpyFactory
+from tests.testdoubles import BrowserSpy, IteratingBrowserTestDoubleFactory
 
 
-def test__workspace__launch__spawns_new_ocrd_browser() -> None:
+@pytest.mark.asyncio
+async def test__workspace__launch__spawns_new_ocrd_browser() -> None:
     owner = "the-owner"
     workspace = "path/to/workspace"
-    process = ocrdbrowser.launch(workspace, owner, BrowserSpyFactory())
+    process = await ocrdbrowser.launch(
+        workspace, owner, IteratingBrowserTestDoubleFactory()
+    )
 
     process = cast(BrowserSpy, process)
-    assert process.running is True
+    assert process.is_running is True
     assert process.owner() == owner
     assert process.workspace() == workspace
 
 
-def test__workspace__launch_for_different_owners__both_processes_running() -> None:
-    factory = BrowserSpyFactory()
+@pytest.mark.asyncio
+async def test__workspace__launch_for_different_owners__both_processes_running() -> None:
+    factory = IteratingBrowserTestDoubleFactory()
 
-    first_process = ocrdbrowser.launch("first-path", "first-owner", factory)
-    second_process = ocrdbrowser.launch(
+    first_process = await ocrdbrowser.launch("first-path", "first-owner", factory)
+    second_process = await ocrdbrowser.launch(
         "second-path", "second-owner", factory, {first_process}
     )
 
     processes = {first_process, second_process}
-    assert all(cast(BrowserSpy, process).running for process in processes)
+    assert all(cast(BrowserSpy, process).is_running for process in processes)
     assert {p.owner() for p in processes} == {"first-owner", "second-owner"}
     assert {p.workspace() for p in processes} == {"first-path", "second-path"}
 
 
-def test__workspace__launch_for_same_owner_and_workspace__does_not_start_new_process() -> None:
+@pytest.mark.asyncio
+async def test__workspace__launch_for_same_owner_and_workspace__does_not_start_new_process() -> (
+    None
+):
     owner = "the-owner"
     workspace = "the-workspace"
-    factory = BrowserSpyFactory()
+    factory = IteratingBrowserTestDoubleFactory()
 
-    first_process = ocrdbrowser.launch(workspace, owner, factory)
-    second_process = ocrdbrowser.launch(workspace, owner, factory, {first_process})
+    first_process = await ocrdbrowser.launch(workspace, owner, factory)
+    second_process = await ocrdbrowser.launch(
+        workspace, owner, factory, {first_process}
+    )
 
     assert first_process is second_process

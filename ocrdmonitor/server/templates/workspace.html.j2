@@ -17,9 +17,19 @@
 </style>
 <script>
     function createErrorElement(message) {
-        const error = document.createElement("p");
-        error.innerText = "The connection to the ocrd browser was lost";
-        error.classList.add("notification", "is-danger");
+        const errorText = document.createElement("p");
+        errorText.innerText = "The connection to the ocrd browser was lost";
+
+        const refresh = document.createElement("button");
+        refresh.innerText = "Retry";
+        refresh.classList.add("button", "is-danger", "mt-2");
+        refresh.addEventListener("click", () => location.reload());
+
+        const error = document.createElement("div");
+        error.classList.add("notification", "is-danger", "is-light");
+
+        error.appendChild(errorText);
+        error.appendChild(refresh);
         return error;
     }
 

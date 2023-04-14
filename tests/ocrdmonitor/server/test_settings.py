@@ -1,5 +1,6 @@
-from pathlib import Path
-from typing import Any, Generator, Type
+import os
+from typing import Any, Literal, Type
+from unittest.mock import patch
 
 import pytest
 from ocrdbrowser import DockerOcrdBrowserFactory, SubProcessOcrdBrowserFactory
@@ -9,76 +10,46 @@ from ocrdmonitor.server.settings import (
     OcrdLogViewSettings,
     Settings,
 )
-from pydantic import BaseModel
-
-CURRENT_DIR = Path(__file__).parent
-ENV_FILE = CURRENT_DIR / ".test.env"
 
 
-ENV_TEMPLATE = {
-    "browser_workspace_dir": "OCRD_BROWSER__WORKSPACE_DIR={}",
-    "browser_mode": "OCRD_BROWSER__MODE={}",
-    "browser_port_range": "OCRD_BROWSER__PORT_RANGE={}",
-    "controller_job_dir": "OCRD_CONTROLLER__JOB_DIR={}",
-    "controller_host": "OCRD_CONTROLLER__HOST={}",
-    "controller_user": "OCRD_CONTROLLER__USER={}",
-    "controller_port": "OCRD_CONTROLLER__PORT={}",
-    "controller_keyfile": "OCRD_CONTROLLER__KEYFILE={}",
-    "logview_port": "OCRD_LOGVIEW__PORT={}",
-}
+EXPECTED = Settings(
+    ocrd_browser=OcrdBrowserSettings(
+        mode="native",
+        workspace_dir="path/to/workdir",
+        port_range=(9000, 9100),
+    ),
+    ocrd_controller=OcrdControllerSettings(
+        job_dir="path/to/jobdir",
+        host="controller.ocrdhost.com",
+        user="controller_user",
+        port=22,
+        keyfile=".ssh/id_rsa",
+    ),
+    ocrd_logview=OcrdLogViewSettings(
+        port=22,
+    ),
+)
 
 
-class DefaultTestEnv(BaseModel):
-    browser_workspace_dir: str = "path/to/workdir"
-    browser_mode: str = "native"
-    browser_port_range: str = "[9000, 9100]"
-    controller_job_dir: str = "path/to/jobdir"
-    controller_host: str = "controller.ocrdhost.com"
-    controller_user: str = "controller_user"
-    controller_port: str = "22"
-    controller_keyfile: str = ".ssh/id_rsa"
-    logview_port: int = 8022
+def expected_to_env() -> dict[str, str]:
+    def to_dict(setting_name: str, settings: dict[str, Any]) -> dict[str, str]:
+        return {
+            f"OCRD_{setting_name}__{key.upper()}": str(value)
+            for key, value in settings.items()
+        }
 
-
-def write_env_file(env_dict: dict[str, str]) -> Path:
-    out = ""
-    for k, v in env_dict.items():
-        out += ENV_TEMPLATE[k].format(v) + "\n"
-
-    ENV_FILE.touch(exist_ok=True)
-    ENV_FILE.write_text(out)
-
-    return ENV_FILE
-
-
-@pytest.fixture(scope="module", autouse=True)
-def env_file_auto_cleanup() -> Generator[None, None, None]:
-    yield
-
-    ENV_FILE.unlink(missing_ok=True)
-
-
-def test__can_parse_env_file() -> None:
-    env = DefaultTestEnv()
-    env_file = write_env_file(env.dict())
-
-    sut = Settings(_env_file=env_file)
-
-    assert sut == Settings(
-        ocrd_browser=OcrdBrowserSettings(
-            mode=env.browser_mode,
-            workspace_dir=Path(env.browser_workspace_dir),
-            port_range=(9000, 9100),
-        ),
-        ocrd_controller=OcrdControllerSettings(
-            job_dir=env.controller_job_dir,
-            host=env.controller_host,
-            user=env.controller_user,
-            port=int(env.controller_port),
-            keyfile=Path(env.controller_keyfile),
-        ),
-        ocrd_logview=OcrdLogViewSettings(port=env.logview_port),
+    return dict(
+        **to_dict("BROWSER", EXPECTED.ocrd_browser.dict()),
+        **to_dict("CONTROLLER", EXPECTED.ocrd_controller.dict()),
+        **to_dict("LOGVIEW", EXPECTED.ocrd_logview.dict()),
     )
+
+
+@patch.dict(os.environ, expected_to_env())
+def test__can_parse_env() -> None:
+    sut = Settings()
+
+    assert sut == EXPECTED
 
 
 @pytest.mark.parametrize(
@@ -88,13 +59,12 @@ def test__can_parse_env_file() -> None:
         ("docker", DockerOcrdBrowserFactory),
     ],
 )
+@patch.dict(os.environ, expected_to_env())
 def test__browser_settings__produces_matching_factory_for_selected_mode(
-    mode: str, factory_type: Type[Any]
+    mode: Literal["native"] | Literal["docker"], factory_type: Type[Any]
 ) -> None:
-    env = DefaultTestEnv(browser_mode=mode)
-    env_file = write_env_file(env.dict())
-
-    sut = Settings(_env_file=env_file)
+    sut = Settings()
+    sut.ocrd_browser.mode = mode
 
     actual = sut.ocrd_browser.factory()
     assert isinstance(actual, factory_type)

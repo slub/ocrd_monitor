@@ -1,5 +1,6 @@
 from pathlib import Path
 import pytest
+from typing import Any, Awaitable, Callable, TypeVar
 
 from testcontainers.general import DockerContainer
 
@@ -9,13 +10,13 @@ from tests.ocrdmonitor.sshcontainer import (
     get_process_group_from_container,
     SSHConfig,
     KEYDIR,
-    # we need to import the fixtures below in order to use them in the test
-    ssh_keys,
-    openssh_server,
 )
+
+T = TypeVar("T")
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_ps_over_ssh__returns_list_of_process_status(
     openssh_server: DockerContainer,
 ) -> None:
@@ -29,8 +30,15 @@ async def test_ps_over_ssh__returns_list_of_process_status(
         ),
     )
 
-    actual = await sut.process_status(process_group)
+    actual = await run_until_truthy(sut.process_status, process_group)
 
     first_process = actual[0]
     assert first_process.pid == process_group
     assert first_process.state == ProcessState.SLEEPING
+
+
+async def run_until_truthy(fn: Callable[..., Awaitable[T]], *args: Any) -> T:
+    while not (result := await fn(*args)):
+        continue
+
+    return result

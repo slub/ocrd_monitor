@@ -1,0 +1,56 @@
+[tool.pdm]
+
+[project]
+name = "ocrd-monitor"
+version = "0.1.0"
+description = "A frontend to the OCRD Manager"
+authors = [
+    { name = "Sven Marcus", email = "sven.marcus@tu-braunschweig.de" },
+    { name = "Markus Weigelt", email = "markus.weigelt@slub-dresden.de" },
+    { name = "Robert Sachunsky", email = "robert.sachunsky@slub-dresden.de" },
+]
+dependencies = [
+    "pydantic[dotenv]>=1.10.6",
+    "pydantic[dotenv]",
+    "fastapi>=0.95.0",
+    "Jinja2>=3.1.2",
+    "websockets>=10.4",
+    "uvicorn>=0.19.0",
+    "httpx>=0.23.3",
+]
+requires-python = ">=3.11"
+license = { text = "MIT" }
+[project.optional-dependencies]
+dev = [
+    "beautifulsoup4>=4.11.1",
+    "mypy>=1.1.1",
+    "pytest>=7.2.2",
+    "pytest-asyncio>=0.21.0",
+    "testcontainers>=3.7.1",
+    "black>=23.1.0",
+    "types-requests>=2.28.11.15",
+    "types-beautifulsoup4>=4.12.0.0",
+]
+nox = [
+    "nox>=2022.11.21",
+]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: mark test as integration test",
+]
+
+[tool.pdm.scripts]
+test = "pytest tests -m 'not integration'"
+test-integration = "pytest tests"
+
+[[tool.mypy.overrides]]
+module = "testcontainers.*"
+ignore_missing_imports = true
+
+[build-system]
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"

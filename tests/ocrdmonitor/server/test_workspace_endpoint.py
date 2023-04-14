@@ -1,38 +1,87 @@
 from __future__ import annotations
 
-from typing import Iterator
+from typing import AsyncIterator, cast
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from ocrdbrowser import ChannelClosed, OcrdBrowserFactory
-from ocrdmonitor.server.settings import OcrdBrowserSettings
-from tests.fakes import OcrdBrowserFakeFactory
-from tests.ocrdbrowser.browserdoubles import BrowserSpy, BrowserSpyFactory
+from httpx import Response
+
+from ocrdbrowser import ChannelClosed
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures import WORKSPACE_DIR
+from tests.ocrdmonitor.server.fixtures import WORKSPACE_DIR, patch_factory
+from tests.testdoubles import BrowserFake
+from tests.testdoubles._browserfactory import (
+    BrowserTestDoubleFactory,
+    IteratingBrowserTestDoubleFactory,
+    SingletonBrowserTestDoubleFactory,
+)
+from tests.testdoubles import Browser_Heading, BrowserSpy, BrowserTestDouble
 
 
-@pytest.fixture
-def browser_spy(monkeypatch: pytest.MonkeyPatch) -> BrowserSpy:
+class DisconnectingChannel:
+    async def send_bytes(self, data: bytes) -> None:
+        raise ChannelClosed()
+
+    async def receive_bytes(self) -> bytes:
+        raise ChannelClosed()
+
+
+@pytest_asyncio.fixture(
+    params=(BrowserSpy, pytest.param(BrowserFake, marks=pytest.mark.integration))
+)
+async def iterating_factory(
+    request: pytest.FixtureRequest,
+) -> AsyncIterator[BrowserTestDoubleFactory]:
+    async with patch_factory(
+        IteratingBrowserTestDoubleFactory(default_browser=request.param)
+    ) as factory:
+        yield factory
+
+
+@pytest_asyncio.fixture
+async def singleton_browser_spy() -> AsyncIterator[BrowserSpy]:
     browser_spy = BrowserSpy()
+    async with patch_factory(SingletonBrowserTestDoubleFactory(browser_spy)):
+        yield browser_spy
 
-    def factory(_: OcrdBrowserSettings) -> OcrdBrowserFactory:
-        return BrowserSpyFactory(browser_spy)
 
-    monkeypatch.setattr(OcrdBrowserSettings, "factory", factory)
-    return browser_spy
+@pytest.fixture(
+    params=(BrowserSpy, pytest.param(BrowserFake, marks=pytest.mark.integration))
+)
+def browser(
+    iterating_factory: IteratingBrowserTestDoubleFactory,
+    request: pytest.FixtureRequest,
+) -> BrowserTestDouble:
+    browser_type = request.param
+    browser = cast(BrowserTestDouble, browser_type())
+    iterating_factory.add(browser)
+
+    return browser
 
 
 @pytest.fixture
-def use_browser_fakes(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    fake_factory = OcrdBrowserFakeFactory()
+def disconnecting_browser(
+    iterating_factory: IteratingBrowserTestDoubleFactory,
+) -> BrowserSpy:
+    disconnecting_browser = BrowserSpy()
+    disconnecting_browser.configure_client(channel=DisconnectingChannel())
+    iterating_factory.add(disconnecting_browser)
 
-    def factory(_: OcrdBrowserSettings) -> OcrdBrowserFactory:
-        return fake_factory
+    return disconnecting_browser
 
-    monkeypatch.setattr(OcrdBrowserSettings, "factory", factory)
-    with fake_factory:
-        yield
+
+def assert_is_browser_response(actual: Response) -> None:
+    assert scraping.parse_texts(actual.content, "h1") == [Browser_Heading]
+
+
+def view_workspace(app: TestClient, workspace: str) -> Response:
+    _ = app.get(f"/workspaces/browse/{workspace}")
+    response = app.get(f"/workspaces/view/{workspace}")
+    with app.websocket_connect(f"/workspaces/view/{workspace}/socket"):
+        pass
+
+    return response
 
 
 def test__workspaces__shows_the_workspace_names_starting_from_workspace_root(
@@ -45,20 +94,18 @@ def test__workspaces__shows_the_workspace_names_starting_from_workspace_root(
 
 
 def test__browse_workspace__passes_full_workspace_path_to_ocrdbrowser(
-    browser_spy: BrowserSpy,
+    browser: BrowserTestDouble,
     app: TestClient,
 ) -> None:
     response = app.get("/workspaces/browse/a_workspace")
 
-    assert browser_spy.running is True
-    assert browser_spy.workspace() == str(WORKSPACE_DIR / "a_workspace")
+    assert browser.is_running is True
+    assert browser.workspace() == str(WORKSPACE_DIR / "a_workspace")
     assert response.status_code == 200
 
 
-def test__browse_workspace__assigns_and_tracks_session_id(
-    browser_spy: BrowserSpy,
-    app: TestClient,
-) -> None:
+@pytest.mark.usefixtures("iterating_factory")
+def test__browse_workspace__assigns_and_tracks_session_id(app: TestClient) -> None:
     response = app.get("/workspaces/browse/a_workspace")
     first_session_id = response.cookies.get("session_id")
 
@@ -69,46 +116,61 @@ def test__browse_workspace__assigns_and_tracks_session_id(
     assert first_session_id == second_session_id
 
 
-def test__opened_workspace__when_socket_disconnects_on_broadway_side_while_viewing__shuts_down_browser(
-    browser_spy: BrowserSpy,
+def test__opened_workspace__when_socket_disconnects_on_broadway_side__shuts_down_browser(
+    disconnecting_browser: BrowserSpy,
     app: TestClient,
 ) -> None:
-    class DisconnectingChannel:
-        async def send_bytes(self, data: bytes) -> None:
-            raise ChannelClosed()
+    _ = view_workspace(app, "a_workspace")
 
-        async def receive_bytes(self) -> bytes:
-            raise ChannelClosed()
-
-    browser_spy.channel = DisconnectingChannel()
-    _ = app.get("/workspaces/browse/a_workspace")
-
-    with app.websocket_connect("/workspaces/view/a_workspace/socket"):
-        pass
-
-    assert browser_spy.running is False
+    assert disconnecting_browser.is_running is False
 
 
-@pytest.mark.usefixtures("use_browser_fakes")
+def test__disconnected_workspace__when_opening_again__starts_new_browser(
+    disconnecting_browser: BrowserTestDouble,
+    browser: BrowserTestDouble,
+    app: TestClient,
+) -> None:
+    workspace = "a_workspace"
+    _ = view_workspace(app, workspace)
+
+    _ = view_workspace(app, workspace)
+
+    assert disconnecting_browser.is_running is False
+    assert browser.is_running is True
+
+
+@pytest.mark.usefixtures("disconnecting_browser")
+def test__disconnected_workspace__when_opening_again__viewing_proxies_requests_to_browser(
+    app: TestClient,
+) -> None:
+    workspace = "a_workspace"
+    _ = view_workspace(app, workspace)
+
+    actual = view_workspace(app, workspace)
+
+    assert_is_browser_response(actual)
+
+
+@pytest.mark.usefixtures("iterating_factory")
 def test__browsed_workspace_is_ready__when_pinging__returns_ok(
     app: TestClient,
 ) -> None:
-    _ = app.get("/workspaces/browse/a_workspace")
+    workspace = "a_workspace"
+    _ = view_workspace(app, workspace)
 
-    result = app.get("/workspaces/ping/a_workspace")
+    result = app.get(f"/workspaces/ping/{workspace}")
 
     assert result.status_code == 200
 
 
 def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
-    browser_spy: BrowserSpy,
+    singleton_browser_spy: BrowserSpy,
     app: TestClient,
 ) -> None:
-    """
-    We're using a browser spy here, because it's not a real server and therefore will not be reachable
-    """
-    _ = app.get("/workspaces/browse/a_workspace")
+    singleton_browser_spy.configure_client(response=ConnectionError)
+    workspace = "a_workspace"
+    _ = view_workspace(app, workspace)
 
-    result = app.get("/workspaces/ping/a_workspace")
+    result = app.get(f"/workspaces/ping/{workspace}")
 
     assert result.status_code == 502

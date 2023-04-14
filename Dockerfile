@@ -1,11 +1,11 @@
-FROM python:3.10
+FROM python:3.11
 
 ARG VCS_REF
 ARG BUILD_DATE
 LABEL \
     maintainer="https://slub-dresden.de" \
     org.label-schema.vcs-ref=$VCS_REF \
-    org.label-schema.vcs-url="https://github.com/slub/ocrd_manager/tree/main/ocrd_monitor" \
+    org.label-schema.vcs-url="https://github.com/slub/ocrd_monitor" \
     org.label-schema.build-date=$BUILD_DATE
 
 RUN apt-get update \
@@ -26,9 +26,9 @@ VOLUME /data
 COPY init.sh /init.sh
 COPY ocrdbrowser /usr/local/ocrd-monitor/ocrdbrowser
 COPY ocrdmonitor /usr/local/ocrd-monitor/ocrdmonitor
-COPY requirements.txt /usr/local/ocrd-monitor/requirements.txt
+COPY pyproject.toml /usr/local/ocrd-monitor/pyproject.toml
 
-RUN pip install -r /usr/local/ocrd-monitor/requirements.txt
+RUN pip install /usr/local/ocrd-monitor
 
 WORKDIR /
 CMD ["/init.sh", "/data"]

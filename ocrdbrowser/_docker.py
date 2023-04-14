@@ -1,20 +1,25 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import os.path as path
-import subprocess as sp
-from typing import Any, AsyncContextManager
+from typing import Any
 
-from ._browser import Channel, OcrdBrowser
+from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._port import Port
-from ._websocketchannel import WebSocketChannel
+from ._client import HttpBrowserClient
 
 _docker_run = "docker run --rm -d --name {} -v {}:/data -p {}:8085 ocrd-browser:latest"
 _docker_stop = "docker stop {}"
+_docker_kill = "docker kill {}"
 
 
-def _run_command(cmd: str, *args: Any) -> sp.CompletedProcess[str]:
-    command = cmd.format(*args).split()
-    return sp.run(command, stdout=sp.PIPE, text=True)
+async def _run_command(cmd: str, *args: Any) -> asyncio.subprocess.Process:
+    command = cmd.format(*args)
+    return await asyncio.create_subprocess_shell(
+        command,
+        stdout=asyncio.subprocess.PIPE,
+    )
 
 
 class DockerOcrdBrowser:
@@ -34,23 +39,27 @@ class DockerOcrdBrowser:
     def owner(self) -> str:
         return self._owner
 
-    def start(self) -> None:
-        cmd = _run_command(
+    async def start(self) -> None:
+        cmd = await _run_command(
             _docker_run, self._container_name(), self._workspace, self._port.get()
         )
-        cmd.check_returncode()
         self.id = str(cmd.stdout).strip()
 
-    def stop(self) -> None:
-        cmd = _run_command(
+    async def stop(self) -> None:
+        cmd = await _run_command(
             _docker_stop, self._container_name(), self.workspace(), self._port.get()
         )
-        cmd.check_returncode()
+
+        if cmd.returncode != 0:
+            logging.info(
+                f"Stopping container {self.id} returned exit code {cmd.returncode}"
+            )
+
         self._port.release()
         self.id = None
 
-    def open_channel(self) -> AsyncContextManager[Channel]:
-        return WebSocketChannel(self.address() + "/socket")
+    def client(self) -> OcrdBrowserClient:
+        return HttpBrowserClient(self.address())
 
     def _container_name(self) -> str:
         workspace = path.basename(self.workspace())
@@ -70,9 +79,9 @@ class DockerOcrdBrowserFactory:
         self._containers.append(container)
         return container
 
-    def stop_all(self) -> None:
+    async def stop_all(self) -> None:
         running_ids = [c.id for c in self._containers if c.id]
         if running_ids:
-            _run_command(_docker_stop, " ".join(running_ids))
+            await _run_command(_docker_kill, " ".join(running_ids))
 
         self._containers = []

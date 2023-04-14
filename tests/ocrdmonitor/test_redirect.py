@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from ocrdmonitor.server.redirect import BrowserRedirect
 
-from tests.ocrdbrowser.browserdoubles import BrowserSpy
+from tests.testdoubles._browserspy import BrowserSpy
 
 
 def server_stub(address: str) -> BrowserSpy:

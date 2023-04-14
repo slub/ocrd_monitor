@@ -52,11 +52,14 @@ You can then open `http://localhost:5000` in your browser (or the server host na
 The tests are intended to be run outside of a container, as some of them will set up containers themselves.
 Therefore you need to have a Python version >= 3.9 installed on your system.
 
-1. Install runtime and dev dependencies
+1. Install runtime and dev dependencies with `pip` or a project management tool like `pdm`
 
 ```bash
-    pip install -r requirements.txt
-    pip install -r requirements.dev.txt
+    pip install -e ".[dev]"
+```
+
+```bash
+    pdm install -G dev
 ```
 
 2. Run nox or pytest

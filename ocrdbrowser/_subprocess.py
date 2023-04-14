@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
-import subprocess as sp
 from shutil import which
-from typing import AsyncContextManager, Optional
+from typing import Optional
 
-from ._browser import Channel, OcrdBrowser
+from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._port import Port
-from ._websocketchannel import WebSocketChannel
+from ._client import HttpBrowserClient
 
 BROADWAY_BASE_PORT = 8080
 
@@ -17,7 +18,7 @@ class SubProcessOcrdBrowser:
         self._localport = localport
         self._owner = owner
         self._workspace = workspace
-        self._process: Optional[sp.Popen[bytes]] = None
+        self._process: Optional[asyncio.subprocess.Process] = None
 
     def address(self) -> str:
         # as long as we do not have a reverse proxy on BW_PORT,
@@ -33,7 +34,7 @@ class SubProcessOcrdBrowser:
     def owner(self) -> str:
         return self._owner
 
-    def start(self) -> None:
+    async def start(self) -> None:
         browse_ocrd = which("browse-ocrd")
         if not browse_ocrd:
             raise FileNotFoundError("Could not find browse-ocrd executable")
@@ -47,7 +48,7 @@ class SubProcessOcrdBrowser:
         environment["GDK_BACKEND"] = "broadway"
         environment["BROADWAY_DISPLAY"] = ":" + displayport
 
-        self._process = sp.Popen(
+        self._process = await asyncio.create_subprocess_shell(
             " ".join(
                 [
                     "broadwayd",
@@ -57,17 +58,22 @@ class SubProcessOcrdBrowser:
                     "kill $!",
                 ]
             ),
-            shell=True,
             env=environment,
         )
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         if self._process:
-            self._process.terminate()
-            self._localport.release()
+            try:
+                self._process.terminate()
+            except ProcessLookupError:
+                logging.info(
+                    f"Attempted to stop already terminated process {self._process.pid}"
+                )
+            finally:
+                self._localport.release()
 
-    def open_channel(self) -> AsyncContextManager[Channel]:
-        return WebSocketChannel(self.address() + "/socket")
+    def client(self) -> OcrdBrowserClient:
+        return HttpBrowserClient(self.address())
 
 
 class SubProcessOcrdBrowserFactory:

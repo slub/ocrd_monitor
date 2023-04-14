@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import atexit
 from pathlib import Path
 from typing import Literal
+
+from pydantic import BaseModel, BaseSettings, validator
 
 from ocrdbrowser import (
     DockerOcrdBrowserFactory,
     OcrdBrowserFactory,
     SubProcessOcrdBrowserFactory,
 )
-from pydantic import BaseModel, BaseSettings, validator
 
 from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.sshremote import SSHRemote
@@ -41,13 +43,23 @@ class OcrdBrowserSettings(BaseModel):
             return SubProcessOcrdBrowserFactory(port_range_set)
         else:
             factory = DockerOcrdBrowserFactory("http://localhost", port_range_set)
-            atexit.register(factory.stop_all)
+
+            @atexit.register
+            def stop_containers() -> None:
+                asyncio.get_event_loop().run_until_complete(factory.stop_all())
+
             return factory
 
     @validator("port_range", pre=True)
     def validator(cls, value: str | tuple[int, int]) -> tuple[int, int]:
         if isinstance(value, str):
-            split_values = value.replace("[", "").replace("]", "").split(",")
+            split_values = (
+                value.replace("[", "")
+                .replace("]", "")
+                .replace("(", "")
+                .replace(")", "")
+                .split(",")
+            )
             int_pair = tuple(int(v) for v in split_values)
         else:
             int_pair = value

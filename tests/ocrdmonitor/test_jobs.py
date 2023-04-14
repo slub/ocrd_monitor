@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -16,19 +17,25 @@ WORKDIR={workdir}
 REMOTEDIR={remotedir}
 WORKFLOW={workflow}
 CONTROLLER={controller_address}
+TIME_CREATED={created_at}
+TIME_TERMINATED={terminated_at}
 """
 
+created_at = datetime(2023, 4, 12, hour=13, minute=0, second=0)
+terminated_at = created_at + timedelta(hours=1)
 
 JOB_TEMPLATE = OcrdJob(
     kitodo_details=KitodoProcessDetails(
-        process_id=5432,
-        task_id=45989,
+        process_id="5432",
+        task_id="45989",
         processdir=Path("/data/5432"),
     ),
     workdir=Path("ocr-d/data/5432"),
     workflow_file=Path("ocr-workflow-default.sh"),
     remotedir="/remote/job/dir",
     controller_address="controller.ocrdhost.com",
+    time_created=created_at,
+    time_terminated=terminated_at,
 )
 
 
@@ -41,6 +48,8 @@ def jobfile_content_for(job: OcrdJob) -> str:
         workflow=job.workflow_file.as_posix(),
         remotedir=job.remotedir,
         controller_address=job.controller_address,
+        created_at=created_at,
+        terminated_at=terminated_at,
     )
 
     if job.pid is not None:
@@ -52,7 +61,9 @@ def jobfile_content_for(job: OcrdJob) -> str:
     return out
 
 
-def test__parsing_a_ocrd_job_file_for_completed_job__returns_ocrdjob_with_a_return_code() -> None:
+def test__parsing_a_ocrd_job_file_for_completed_job__returns_ocrdjob_with_a_return_code() -> (
+    None
+):
     expected = replace(JOB_TEMPLATE, return_code=0)
     content = jobfile_content_for(expected)
 
@@ -61,7 +72,9 @@ def test__parsing_a_ocrd_job_file_for_completed_job__returns_ocrdjob_with_a_retu
     assert actual == expected
 
 
-def test__parsing_a_ocrd_job_file_for_running_job__returns_ocrdjob_with_a_process_id() -> None:
+def test__parsing_a_ocrd_job_file_for_running_job__returns_ocrdjob_with_a_process_id() -> (
+    None
+):
     expected = replace(JOB_TEMPLATE, pid=1)
     content = jobfile_content_for(expected)
 

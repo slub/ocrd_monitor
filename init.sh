@@ -24,7 +24,7 @@ export OCRD_LOGVIEW__PORT=$MONITOR_PORT_LOG
 export OCRD_CONTROLLER__JOB_DIR=/run/lock/ocrd.jobs
 export OCRD_CONTROLLER__HOST=$CONTROLLER_HOST
 export OCRD_CONTROLLER__PORT=$CONTROLLER_PORT
-export OCRD_CONTROLLER__USER=ocrd
+export OCRD_CONTROLLER__USER=admin
 export OCRD_CONTROLLER__KEYFILE=~/.ssh/id_rsa
 
 cd /usr/local/ocrd-monitor

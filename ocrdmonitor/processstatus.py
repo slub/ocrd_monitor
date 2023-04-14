@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-import subprocess
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 
-PS_CMD = "ps -g {} -o pid,state,%cpu,rss,cputime --no-headers"
-
 
 class ProcessState(Enum):
+    # see ps(1)#PROCESS_STATE_CODES
     RUNNING = "R"
     SLEEPING = "S"
+    SLEEPIO = "D"
     STOPPED = "T"
+    TRACING = "t"
     ZOMBIE = "Z"
     UNKNOWN = "?"
 
@@ -28,7 +28,11 @@ class ProcessStatus:
     cpu_time: timedelta
 
     @classmethod
-    def from_ps_output(cls, ps_output: str) -> list["ProcessStatus"]:
+    def shell_command(cls, pid: int) -> str:
+        return f"ps -s {pid} -o pid,state,%cpu,rss,cputime --no-headers"
+
+    @classmethod
+    def from_shell_output(cls, ps_output: str) -> list["ProcessStatus"]:
         def is_error(lines: list[str]) -> bool:
             return lines[0].startswith("error:")
 
@@ -47,13 +51,6 @@ class ProcessStatus:
             return []
 
         return [parse_line(line) for line in lines]
-
-
-def run(group: int) -> list[ProcessStatus]:
-    cmd = PS_CMD.format(group)
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-
-    return ProcessStatus.from_ps_output(result.stdout)
 
 
 def _cpu_time_to_seconds(cpu_time: str) -> int:

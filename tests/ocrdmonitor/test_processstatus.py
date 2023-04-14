@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from ocrdmonitor.processstatus import ProcessState, ProcessStatus, run
+from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 
 PS_OUTPUT = """
         1  Ss   0.0  3872 01:12:46
@@ -16,7 +16,7 @@ FAILING_OUTPUTS = ["", INVALID_GROUP_OUTPUT, INVALID_FORMAT_OUTPUT]
 
 
 def test__parsing_psoutput__returns_list_of_process_status() -> None:
-    actual = ProcessStatus.from_ps_output(PS_OUTPUT)
+    actual = ProcessStatus.from_shell_output(PS_OUTPUT)
 
     assert actual == [
         ProcessStatus(
@@ -38,6 +38,6 @@ def test__parsing_psoutput__returns_list_of_process_status() -> None:
 
 @pytest.mark.parametrize("output", FAILING_OUTPUTS)
 def test__parsing_psoutput_with_error__returns_empty_list(output: str) -> None:
-    actual = ProcessStatus.from_ps_output(output)
+    actual = ProcessStatus.from_shell_output(output)
 
     assert actual == []

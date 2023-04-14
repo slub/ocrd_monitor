@@ -21,6 +21,7 @@ services:
 
     volumes:
       - ${MANAGER_DATA}:/data
+      - ${MANAGER_WORKFLOWS}:/workflows
       - ${MANAGER_KEY}:/id_rsa
       - shared:/run/lock/ocrd.jobs
 

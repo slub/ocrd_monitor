@@ -35,7 +35,7 @@ def create_app(settings: Settings) -> FastAPI:
         create_jobs(
             templates,
             OcrdController(
-                settings.ocrd_controller.process_query(),
+                settings.ocrd_controller.controller_remote(),
                 settings.ocrd_controller.job_dir,
             ),
         )

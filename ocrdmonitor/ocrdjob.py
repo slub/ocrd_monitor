@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+from datetime import datetime
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Any, NamedTuple, Type
+from typing import Any, Callable, NamedTuple, Type
 
-_KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path], str]] = {
+_KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path] | Callable[[str], datetime], str]] = {
     "PID": (int, "pid"),
     "RETVAL": (int, "return_code"),
-    "PROCESS_ID": (int, "process_id"),
-    "TASK_ID": (int, "task_id"),
+    "TIME_CREATED": (datetime.fromisoformat, "time_created"),
+    "TIME_TERMINATED": (datetime.fromisoformat, "time_terminated"),
+    "PROCESS_ID": (str, "process_id"),
+    "TASK_ID": (str, "task_id"),
     "PROCESS_DIR": (Path, "processdir"),
     "WORKDIR": (Path, "workdir"),
     "WORKFLOW": (Path, "workflow_file"),
@@ -18,7 +21,7 @@ _KEYMAP: dict[str, tuple[Type[int] | Type[str] | Type[Path], str]] = {
 }
 
 
-def _into_dict(content: str) -> dict[str, int | str | Path]:
+def _into_dict(content: str) -> dict[str, int | str | Path | datetime]:
     result_dict = {}
     lines = content.splitlines()
     for line in lines:
@@ -35,8 +38,8 @@ def _into_dict(content: str) -> dict[str, int | str | Path]:
 
 
 class KitodoProcessDetails(NamedTuple):
-    process_id: int
-    task_id: int
+    process_id: str
+    task_id: str
     processdir: Path
 
 
@@ -58,6 +61,9 @@ class OcrdJob:
 
     pid: int | None = None
     return_code: int | None = None
+
+    time_created: datetime | None = None
+    time_terminated: datetime | None = None
 
     @classmethod
     def from_str(cls, content: str) -> "OcrdJob":

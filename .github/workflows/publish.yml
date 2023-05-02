@@ -40,11 +40,6 @@ jobs:
         path: /tmp/${{ github.event.inputs.image-tag }}-vcs-ref
         key: ${{ github.event.inputs.image-tag }}-${{ env.vcs_ref }}
         lookup-only: true
-        
-    - # Activate cache export feature to reduce build time of images
-      name: Set up Docker Buildx
-      if: steps.cache.outputs.cache-hit != 'true'
-      uses: docker/setup-buildx-action@v2
 
     - name: Login to GitHub Container Registry
       if: steps.cache.outputs.cache-hit != 'true'
@@ -56,7 +51,7 @@ jobs:
 
     - name: Build the OCR-D Monitor image "${{ env.IMAGE_NAME }}:${{ github.event.inputs.image-tag }}" and deploy to GitHub Container Repository
       if: steps.cache.outputs.cache-hit != 'true'
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v3
       with:
         context: .
         push: true

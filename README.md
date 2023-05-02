@@ -1,5 +1,10 @@
 # OCR-D Monitor
 
+> Web frontend for ocrd_manager
+
+[![CI Test](https://github.com/slub/ocrd_monitor/actions/workflows/test-ci.yml/badge.svg)](https://github.com/slub/ocrd_monitor/actions/workflows/test-ci.yml)
+[![CD Github Package](https://github.com/slub/ocrd_monitor/actions/workflows/publish.yml/badge.svg)](https://github.com/slub/ocrd_monitor/actions/workflows/publish.yml)
+
 The OCR-D Monitor web application allows monitoring the progress and results of OCR-D jobs.
 It is intended to be used together with the setup found in the [ocrd_kitodo repository](https://github.com/slub/ocrd_kitodo).
 You can find detailed instructions on how to deploy the Kitodo/OCR-D stack (entirely or partially) [there](https://slub.github.io/ocrd_kitodo).

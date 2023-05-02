@@ -36,6 +36,7 @@ class OcrdBrowserSettings(BaseModel):
     workspace_dir: Path
     mode: Literal["native", "docker"] = "native"
     port_range: tuple[int, int]
+    # db_connection_string: str
 
     def factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.port_range))

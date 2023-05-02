@@ -6,17 +6,28 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import Response
+from testcontainers.mongodb import MongoDbContainer
 
 from ocrdbrowser import ChannelClosed
+from ocrdmonitor import dbmodel
+from ocrdmonitor.server.app import create_app
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures import WORKSPACE_DIR, patch_factory
-from tests.testdoubles import BrowserFake
+from tests.ocrdmonitor.server.fixtures import (
+    WORKSPACE_DIR,
+    create_settings,
+    patch_factory,
+)
+from tests.testdoubles import (
+    Browser_Heading,
+    BrowserFake,
+    BrowserSpy,
+    BrowserTestDouble,
+)
 from tests.testdoubles._browserfactory import (
     BrowserTestDoubleFactory,
     IteratingBrowserTestDoubleFactory,
     SingletonBrowserTestDoubleFactory,
 )
-from tests.testdoubles import Browser_Heading, BrowserSpy, BrowserTestDouble
 
 
 class DisconnectingChannel:
@@ -174,3 +185,23 @@ def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
     result = app.get(f"/workspaces/ping/{workspace}")
 
     assert result.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test__process_stored_in_db__browsing_workspace__proxies_to_browser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with MongoDbContainer() as container:
+        await dbmodel.init(container.get_connection_url())
+
+        async with patch_factory(IteratingBrowserTestDoubleFactory()):
+            settings = create_settings()
+            app = TestClient(create_app(settings))
+
+            _ = view_workspace(app, "a_workspace")
+
+        found_browsers = await dbmodel.BrowserProcess.find_all(
+            dbmodel.BrowserProcess.workspace == "a_workspace"
+        ).count()
+
+        assert found_browsers == 1

@@ -26,7 +26,9 @@ VOLUME /data
 COPY init.sh /init.sh
 COPY ocrdbrowser /usr/local/ocrd-monitor/ocrdbrowser
 COPY ocrdmonitor /usr/local/ocrd-monitor/ocrdmonitor
-COPY pyproject.toml /usr/local/ocrd-monitor/pyproject.toml
+COPY pyproject.toml /usr/local/ocrd-monitor/
+COPY noxfile.py /usr/local/ocrd-monitor/
+COPY tests /usr/local/ocrd-monitor/tests
 
 RUN pip install /usr/local/ocrd-monitor
 

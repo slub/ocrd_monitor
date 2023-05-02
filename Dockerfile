@@ -30,7 +30,7 @@ COPY pyproject.toml /usr/local/ocrd-monitor/
 COPY noxfile.py /usr/local/ocrd-monitor/
 COPY tests /usr/local/ocrd-monitor/tests
 
-RUN pip install /usr/local/ocrd-monitor
+RUN pip install -e /usr/local/ocrd-monitor
 
 WORKDIR /
 CMD ["/init.sh", "/data"]

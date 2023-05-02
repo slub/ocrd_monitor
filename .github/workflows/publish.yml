@@ -54,19 +54,6 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Generate image metadata
-      if: steps.cache.outputs.cache-hit != 'true'
-      id: meta
-      uses: docker/metadata-action@v4
-      with:
-        images: ${{ env.IMAGE_NAME }}
-        labels: |
-          org.opencontainers.image.title=OCR-D Monitor
-          org.opencontainers.image.version=${{ github.event.inputs.image-tag }}
-          org.opencontainers.image.revision=${{ env.vcs_ref }}
-          org.opencontainers.image.created=${{ env.build_date }}
-        tags: ${{ github.event.inputs.image-tag }}
-
     - name: Build the OCR-D Monitor image "${{ env.IMAGE_NAME }}:${{ github.event.inputs.image-tag }}" and deploy to GitHub Container Repository
       if: steps.cache.outputs.cache-hit != 'true'
       uses: docker/build-push-action@v4

@@ -67,9 +67,8 @@ run: $(DATA)
 test:
 	{ echo set -e; \
 	echo cd /usr/local/ocrd-monitor/; \
-	echo rm tests/ocrdmonitor/{sshcontainer,test_sshremote,conftest}.py; \
 	echo pip install nox; \
-	echo nox; } | \
+	echo "nox -- -m 'not integration'"; } | \
 	docker run --rm -i \
 	$(TAGNAME) bash
 

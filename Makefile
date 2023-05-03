@@ -68,7 +68,7 @@ test:
 	{ echo set -e; \
 	echo cd /usr/local/ocrd-monitor/; \
 	echo pip install nox; \
-	echo "nox -- -m 'not integration'"; } | \
+	echo "nox -- -m 'not needs_docker'"; } | \
 	docker run --rm -i \
 	$(TAGNAME) bash
 

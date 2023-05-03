@@ -6,6 +6,9 @@ from typing import AsyncContextManager, Protocol
 
 
 class OcrdBrowser(Protocol):
+    def process_id(self) -> str:
+        ...
+
     def address(self) -> str:
         ...
 

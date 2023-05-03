@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 import ocrdbrowser
+from ocrdmonitor import dbmodel
 import ocrdmonitor.server.proxy as proxy
 from fastapi import APIRouter, Cookie, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
@@ -40,6 +41,11 @@ def create_workspaces(
         if (session_id, workspace) not in redirects:
             browser = await launch_browser(session_id, workspace)
             redirects.add(session_id, workspace, browser)
+            await dbmodel.BrowserProcess(  # type: ignore
+                process_id=browser.process_id(),
+                owner=browser.owner(),
+                workspace=browser.workspace(),
+            ).insert()
 
         return response
 

@@ -4,7 +4,7 @@ from typing import Any, Coroutine, Protocol
 import pytest
 
 from ocrdbrowser import Channel, ChannelClosed, HttpBrowserClient
-from tests.testdoubles import BackgroundProcess, broadway_fake
+from tests.testdoubles import FAKE_HOST_ADDRESS, BackgroundProcess, broadway_fake
 
 
 async def send(channel: Channel) -> None:
@@ -29,7 +29,7 @@ async def test__channel__losing_connection_while_communicating__raises_channel_c
     server = broadway_fake("")
     await asyncio.to_thread(server.launch)
 
-    sut = HttpBrowserClient("http://localhost:7000")
+    sut = HttpBrowserClient(f"http://{FAKE_HOST_ADDRESS}")
     with pytest.raises(ChannelClosed):
         async with sut.open_channel() as channel:
             await shutdown_server(server)

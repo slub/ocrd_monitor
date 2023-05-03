@@ -1,5 +1,5 @@
 from ._backgroundprocess import BackgroundProcess
-from ._broadwayfake import broadway_fake
+from ._broadwayfake import broadway_fake, FAKE_HOST_ADDRESS
 from ._browserfactory import (
     BrowserTestDouble,
     BrowserTestDoubleFactory,
@@ -17,6 +17,7 @@ __all__ = [
     "BrowserSpy",
     "BrowserTestDouble",
     "BrowserTestDoubleFactory",
+    "FAKE_HOST_ADDRESS",
     "SingletonBrowserTestDoubleFactory",
     "IteratingBrowserTestDoubleFactory",
 ]

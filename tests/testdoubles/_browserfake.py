@@ -21,6 +21,9 @@ class BrowserFake:
         self._workspace = workspace
         self._browser = broadway_fake(workspace)
 
+    def process_id(self) -> str:
+        return str(self._browser.pid)
+
     def address(self) -> str:
         return f"http://{FAKE_HOST_ADDRESS}"
 

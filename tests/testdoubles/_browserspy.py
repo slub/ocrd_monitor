@@ -47,13 +47,15 @@ class BrowserClientStub:
 class BrowserSpy:
     def __init__(
         self,
+        process_id: str = "1234",
         owner: str = "",
         workspace_path: str = "",
         address: str = "http://unreachable.example.com",
         running: bool = False,
     ) -> None:
-        self.is_running = running
         self._address = address
+        self._process_id = process_id
+        self.is_running = running
         self.owner_name = owner
         self.workspace_path = workspace_path
         self._client = BrowserClientStub()
@@ -66,6 +68,9 @@ class BrowserSpy:
     def set_owner_and_workspace(self, owner: str, workspace: str) -> None:
         self.owner_name = owner
         self.workspace_path = workspace
+
+    def process_id(self) -> str:
+        return self._process_id
 
     def address(self) -> str:
         return self._address

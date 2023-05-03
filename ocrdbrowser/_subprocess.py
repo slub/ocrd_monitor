@@ -20,6 +20,12 @@ class SubProcessOcrdBrowser:
         self._workspace = workspace
         self._process: Optional[asyncio.subprocess.Process] = None
 
+    def process_id(self) -> str:
+        if not self._process:
+            raise AttributeError
+
+        return str(self._process.pid)
+
     def address(self) -> str:
         # as long as we do not have a reverse proxy on BW_PORT,
         # we must map the local port range to the exposed range

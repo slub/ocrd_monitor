@@ -30,6 +30,9 @@ class DockerOcrdBrowser:
         self._workspace = path.abspath(workspace)
         self.id: str | None = None
 
+    def process_id(self) -> str:
+        return self._container_name()
+
     def address(self) -> str:
         return f"{self._host}:{self._port}"
 

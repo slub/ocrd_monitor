@@ -1,3 +1,4 @@
+from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, Response, WebSocket
 from fastapi.responses import HTMLResponse
@@ -29,7 +30,12 @@ def _create_app(workspace: str) -> FastAPI:
 
 def _run_app(workspace: str) -> None:
     app = _create_app(workspace)
-    uvicorn.run(app, host="localhost", port=7000)
+
+    host = "localhost"
+    if Path("/.dockerenv").exists():
+        host = "127.0.0.1"
+
+    uvicorn.run(app, host=host, port=7000)
 
 
 def broadway_fake(workspace: str) -> BackgroundProcess:

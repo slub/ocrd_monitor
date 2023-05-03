@@ -7,6 +7,11 @@ from tests.testdoubles._browserspy import html_template
 from ._backgroundprocess import BackgroundProcess
 
 
+FAKE_HOST_IP = "127.0.0.1"
+FAKE_HOST_PORT = 7000
+FAKE_HOST_ADDRESS = f"{FAKE_HOST_IP}:{FAKE_HOST_PORT}"
+
+
 def _create_app(workspace: str) -> FastAPI:
     app = FastAPI()
 
@@ -29,7 +34,7 @@ def _create_app(workspace: str) -> FastAPI:
 
 def _run_app(workspace: str) -> None:
     app = _create_app(workspace)
-    uvicorn.run(app, host="localhost", port=7000)
+    uvicorn.run(app, host=FAKE_HOST_IP, port=FAKE_HOST_PORT)
 
 
 def broadway_fake(workspace: str) -> BackgroundProcess:

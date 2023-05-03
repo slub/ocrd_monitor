@@ -1,5 +1,10 @@
 # OCR-D Monitor
 
+> Web frontend for ocrd_manager
+
+[![CI Test](https://github.com/slub/ocrd_monitor/actions/workflows/test-ci.yml/badge.svg)](https://github.com/slub/ocrd_monitor/actions/workflows/test-ci.yml)
+[![CD Github Package](https://github.com/slub/ocrd_monitor/actions/workflows/publish.yml/badge.svg)](https://github.com/slub/ocrd_monitor/actions/workflows/publish.yml)
+
 The OCR-D Monitor web application allows monitoring the progress and results of OCR-D jobs.
 It is intended to be used together with the setup found in the [ocrd_kitodo repository](https://github.com/slub/ocrd_kitodo).
 You can find detailed instructions on how to deploy the Kitodo/OCR-D stack (entirely or partially) [there](https://slub.github.io/ocrd_kitodo).
@@ -49,28 +54,46 @@ You can then open `http://localhost:5000` in your browser (or the server host na
 
 ## Testing
 
-The tests are intended to be run outside of a container, as some of them will set up containers themselves.
-Therefore you need to have a Python version >= 3.9 installed on your system.
+The tests are intended to be run outside of a container,
+because some of them will set up containers themselves.
+You need to have a Python version >= 3.11 installed on your system.
 
-1. Install runtime and dev dependencies with `pip` or a project management tool like `pdm`
+### via nox
 
-```bash
-    pip install -e ".[dev]"
-```
+The easiest way to run the tests is via [nox](https://nox.readthedocs.io/):
 
-```bash
-    pdm install -G dev
-```
+1. [Install nox](https://nox.readthedocs.io/) – either via `pipx` or `pip` (system-wide, user-wide, or in a venv).
+2. Run
 
-2. Run nox or pytest
+        nox
 
-```bash
-    nox
-```
+This will install dependencies and virtualenv for tests,
+and subsequently run them.
 
-```bash
-    pytest tests
-```
+### via mypy and pytest
+
+1. Install package along with runtime and dev dependencies
+   via `pip` or a project management tool like `pdm`
+
+        pip install -e ".[dev]"
+        # ... or ...
+        pdm install -G dev
+
+2. Run
+
+        mypy --strict ocrdbrowser ocrdmonitor tests
+        pytest -vv tests
+
+### via make
+
+Besides targets for [stand-alone Docker calls at runtime](#Makefile),
+the Makefile also allows testing the Docker image. It deactivates
+those tests which cannot be run from within a container.
+
+Run
+
+    make test
+
 
 ## General overview
 

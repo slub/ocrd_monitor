@@ -64,4 +64,12 @@ run: $(DATA)
 	-e MONITOR_PORT_LOG=${MONITOR_PORT_LOG} \
 	$(TAGNAME)
 
-.PHONY: build pull run help
+test:
+	{ echo set -e; \
+	echo cd /usr/local/ocrd-monitor/; \
+	echo pip install nox; \
+	echo "nox -- -m 'not needs_docker'"; } | \
+	docker run --rm -i \
+	$(TAGNAME) bash
+
+.PHONY: build pull run help test

@@ -65,7 +65,7 @@ jobs:
           BUILD_DATE=${{ env.build_date }}
           VCS_REF=${{ env.vcs_ref }}
         cache-from: type=gha
-        cache-to: type=gha,mode=max  
+        cache-to: type=gha,mode=max
     
     - name: Save cache key "${{ github.event.inputs.image-tag }}-${{ env.vcs_ref }}" (input image-tag - vcs_ref)
       uses: actions/cache/save@v3

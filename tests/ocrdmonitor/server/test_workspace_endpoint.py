@@ -196,21 +196,15 @@ async def db() -> AsyncIterator[None]:
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("iterating_factory")
 async def test__process_stored_in_db__browsing_workspace__proxies_to_browser(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, app: TestClient
 ) -> None:
-    async with patch_factory(IteratingBrowserTestDoubleFactory()):
-        settings = create_settings()
-        app = TestClient(create_app(settings))
+    repo = dbmodel.MongoBrowserProcessRepository()
+    _ = view_workspace(app, "a_workspace")
 
-        _ = view_workspace(app, "a_workspace")
-
-    found_browsers = (
-        await dbmodel.BrowserProcess.find(
-            dbmodel.BrowserProcess.workspace == str(WORKSPACE_DIR / "a_workspace")
-        )
-        .find(dbmodel.BrowserProcess.process_id == "1234")
-        .to_list()
+    found_browsers = await repo.find(
+        workspace=str(WORKSPACE_DIR / "a_workspace"), process_id="1234"
     )
 
     assert len(found_browsers) == 1

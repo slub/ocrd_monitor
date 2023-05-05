@@ -3,18 +3,22 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-
-import ocrdbrowser
-from ocrdmonitor import dbmodel
-import ocrdmonitor.server.proxy as proxy
 from fastapi import APIRouter, Cookie, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
+
+import ocrdbrowser
+import ocrdmonitor.server.proxy as proxy
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
+from ocrdmonitor import dbmodel
+from ocrdmonitor.browserprocess import BrowserProcessRepository
 from ocrdmonitor.server.redirect import RedirectMap
 
 
 def create_workspaces(
-    templates: Jinja2Templates, factory: OcrdBrowserFactory, workspace_dir: Path
+    templates: Jinja2Templates,
+    factory: OcrdBrowserFactory,
+    repository: BrowserProcessRepository,
+    workspace_dir: Path,
 ) -> APIRouter:
     router = APIRouter(prefix="/workspaces")
 
@@ -41,11 +45,7 @@ def create_workspaces(
         if (session_id, workspace) not in redirects:
             browser = await launch_browser(session_id, workspace)
             redirects.add(session_id, workspace, browser)
-            await dbmodel.BrowserProcess(  # type: ignore
-                process_id=browser.process_id(),
-                owner=browser.owner(),
-                workspace=browser.workspace(),
-            ).insert()
+            await repository.insert(browser)
 
         return response
 

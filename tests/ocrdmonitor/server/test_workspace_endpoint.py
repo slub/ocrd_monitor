@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from typing import AsyncIterator, cast
+from contextlib import asynccontextmanager, contextmanager
+from typing import (
+    AsyncContextManager,
+    AsyncIterator,
+    Callable,
+    ContextManager,
+    Iterator,
+    cast,
+)
 
 import pytest
 import pytest_asyncio
@@ -10,12 +18,11 @@ from testcontainers.mongodb import MongoDbContainer
 
 from ocrdbrowser import ChannelClosed
 from ocrdmonitor import dbmodel
-from ocrdmonitor.server.app import create_app
+from ocrdmonitor.browserprocess import BrowserProcessRepository
 from ocrdmonitor.server.settings import OcrdBrowserSettings
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.fixtures import (
     WORKSPACE_DIR,
-    create_settings,
     patch_factory,
 )
 from tests.testdoubles import (
@@ -23,9 +30,8 @@ from tests.testdoubles import (
     BrowserFake,
     BrowserSpy,
     BrowserTestDouble,
-)
-from tests.testdoubles._browserfactory import (
     BrowserTestDoubleFactory,
+    InMemoryBrowserProcessRepository,
     IteratingBrowserTestDoubleFactory,
     SingletonBrowserTestDoubleFactory,
 )
@@ -188,23 +194,13 @@ def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
     assert result.status_code == 502
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def db() -> AsyncIterator[None]:
-    with MongoDbContainer() as container:
-        await dbmodel.init(container.get_connection_url())
-        yield
-
-
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("iterating_factory")
-async def test__process_stored_in_db__browsing_workspace__proxies_to_browser(
-    monkeypatch: pytest.MonkeyPatch, app: TestClient
+async def test__browsing_workspace__stores_browser_in_repository(
+    repository: BrowserProcessRepository, app: TestClient
 ) -> None:
-    repo = dbmodel.MongoBrowserProcessRepository()
     _ = view_workspace(app, "a_workspace")
 
-    found_browsers = await repo.find(
-        workspace=str(WORKSPACE_DIR / "a_workspace"), process_id="1234"
-    )
+    found_browsers = await repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
 
     assert len(found_browsers) == 1

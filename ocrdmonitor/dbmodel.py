@@ -27,17 +27,17 @@ class BrowserProcess(Document):
 
 class MongoBrowserProcessRepository:
     async def insert(self, browser: BrowserProcessProtocol) -> None:
-        await BrowserProcess(
-            owner=browser.owner,
-            process_id=browser.process_id,
-            workspace=browser.workspace,
+        await BrowserProcess(  # type: ignore
+            owner=browser.owner(),
+            process_id=browser.process_id(),
+            workspace=browser.workspace(),
         ).insert()
 
     async def delete(self, browser: BrowserProcessProtocol) -> None:
-        await BrowserProcess(
-            owner=browser.owner,
-            process_id=browser.process_id,
-            workspace=browser.workspace,
+        await BrowserProcess(  # type: ignore
+            owner=browser.owner(),
+            process_id=browser.process_id(),
+            workspace=browser.workspace(),
         ).delete()
 
     async def find(

@@ -2,15 +2,12 @@ from typing import Collection, Protocol
 
 
 class BrowserProcess(Protocol):
-    @property
     def process_id(self) -> str:
         ...
 
-    @property
     def workspace(self) -> str:
         ...
 
-    @property
     def owner(self) -> str:
         ...
 
@@ -23,6 +20,10 @@ class BrowserProcessRepository(Protocol):
         ...
 
     async def find(
-        self, owner: str, workspace: str, process_id: str | None = None
+        self,
+        *,
+        owner: str | None = None,
+        workspace: str | None = None,
+        process_id: str | None = None,
     ) -> Collection[BrowserProcess]:
         ...

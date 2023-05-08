@@ -38,7 +38,10 @@ nox = ["nox>=2022.11.21"]
 plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
-markers = ["integration: mark test as integration test"]
+markers = [
+    "integration: mark test as integration test",
+    "needs_docker: marks tests that need access to Docker in order to run"
+]
 
 [tool.pdm.scripts]
 test = "pytest tests -m 'not integration'"

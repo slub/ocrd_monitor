@@ -4,9 +4,18 @@ ARG VCS_REF
 ARG BUILD_DATE
 LABEL \
     maintainer="https://slub-dresden.de" \
+    org.label-schema.vendor="Saxon State and University Library Dresden" \
+    org.label-schema.name="OCR-D Monitor" \
     org.label-schema.vcs-ref=$VCS_REF \
     org.label-schema.vcs-url="https://github.com/slub/ocrd_monitor" \
-    org.label-schema.build-date=$BUILD_DATE
+    org.label-schema.build-date=$BUILD_DATE \
+    org.opencontainers.image.vendor="Saxon State and University Library Dresden" \
+    org.opencontainers.image.title="OCR-D Monitor" \
+    org.opencontainers.image.description="Web frontend for OCR-D Manager" \
+    org.opencontainers.image.source="https://github.com/slub/ocrd_monitor" \
+    org.opencontainers.image.documentation="https://github.com/slub/ocrd_monitor/blob/${VCS_REF}/README.md" \
+    org.opencontainers.image.revision=$VCS_REF \
+    org.opencontainers.image.created=$BUILD_DATE
 
 RUN apt-get update \
     && apt-get install -o Acquire::Retries=3 -y --no-install-recommends \
@@ -26,9 +35,11 @@ VOLUME /data
 COPY init.sh /init.sh
 COPY ocrdbrowser /usr/local/ocrd-monitor/ocrdbrowser
 COPY ocrdmonitor /usr/local/ocrd-monitor/ocrdmonitor
-COPY pyproject.toml /usr/local/ocrd-monitor/pyproject.toml
+COPY pyproject.toml /usr/local/ocrd-monitor/
+COPY noxfile.py /usr/local/ocrd-monitor/
+COPY tests /usr/local/ocrd-monitor/tests
 
-RUN pip install /usr/local/ocrd-monitor
+RUN pip install -e /usr/local/ocrd-monitor
 
 WORKDIR /
 CMD ["/init.sh", "/data"]

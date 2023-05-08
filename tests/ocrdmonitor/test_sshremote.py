@@ -17,6 +17,7 @@ T = TypeVar("T")
 
 @pytest.mark.asyncio
 @pytest.mark.integration
+@pytest.mark.needs_docker
 async def test_ps_over_ssh__returns_list_of_process_status(
     openssh_server: DockerContainer,
 ) -> None:

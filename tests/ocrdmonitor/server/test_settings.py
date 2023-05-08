@@ -17,6 +17,7 @@ EXPECTED = Settings(
         mode="native",
         workspace_dir="path/to/workdir",
         port_range=(9000, 9100),
+        db_connection_string="user@mongo:mongodb:1234"
     ),
     ocrd_controller=OcrdControllerSettings(
         job_dir="path/to/jobdir",

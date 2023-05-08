@@ -12,6 +12,8 @@ from ocrdbrowser import (
     OcrdBrowserFactory,
     SubProcessOcrdBrowserFactory,
 )
+from ocrdmonitor import dbmodel
+from ocrdmonitor.browserprocess import BrowserProcessRepository
 
 from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.sshremote import SSHRemote
@@ -36,7 +38,11 @@ class OcrdBrowserSettings(BaseModel):
     workspace_dir: Path
     mode: Literal["native", "docker"] = "native"
     port_range: tuple[int, int]
-    # db_connection_string: str
+    db_connection_string: str
+
+    async def repository(self) -> BrowserProcessRepository:
+        await dbmodel.init(self.db_connection_string)
+        return dbmodel.MongoBrowserProcessRepository()
 
     def factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.port_range))

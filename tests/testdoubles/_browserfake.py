@@ -6,7 +6,7 @@ import asyncio
 from ocrdbrowser import HttpBrowserClient, OcrdBrowserClient
 
 from ._backgroundprocess import BackgroundProcess
-from ._broadwayfake import broadway_fake
+from ._broadwayfake import broadway_fake, FAKE_HOST_ADDRESS
 
 
 class BrowserFake:
@@ -25,7 +25,7 @@ class BrowserFake:
         return str(self._browser.pid)
 
     def address(self) -> str:
-        return "http://localhost:7000"
+        return f"http://{FAKE_HOST_ADDRESS}"
 
     def owner(self) -> str:
         return self._owner

@@ -1,5 +1,5 @@
 from ._backgroundprocess import BackgroundProcess
-from ._broadwayfake import broadway_fake
+from ._broadwayfake import broadway_fake, FAKE_HOST_ADDRESS
 from ._browserfactory import (
     BrowserTestDouble,
     BrowserTestDoubleFactory,
@@ -8,6 +8,7 @@ from ._browserfactory import (
 )
 from ._browserfake import BrowserFake
 from ._browserspy import BrowserSpy, Browser_Heading
+from ._browserprocessrepository import InMemoryBrowserProcessRepository
 
 __all__ = [
     "BackgroundProcess",
@@ -17,6 +18,8 @@ __all__ = [
     "BrowserSpy",
     "BrowserTestDouble",
     "BrowserTestDoubleFactory",
+    "FAKE_HOST_ADDRESS",
     "SingletonBrowserTestDoubleFactory",
     "IteratingBrowserTestDoubleFactory",
+    "InMemoryBrowserProcessRepository",
 ]

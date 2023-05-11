@@ -6,10 +6,12 @@ from beanie import Document, init_beanie
 from beanie.odm.queries.find import FindMany
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from ocrdmonitor.browserprocess import BrowserProcess as BrowserProcessProtocol
+from ocrdbrowser import OcrdBrowser
+from ocrdmonitor.browserprocess import BrowserRestoringFactory
 
 
 class BrowserProcess(Document):
+    address: str
     owner: str
     process_id: str
     workspace: str
@@ -26,14 +28,18 @@ class BrowserProcess(Document):
 
 
 class MongoBrowserProcessRepository:
-    async def insert(self, browser: BrowserProcessProtocol) -> None:
+    def __init__(self, restoring_factory: BrowserRestoringFactory) -> None:
+        self._restoring_factory = restoring_factory
+
+    async def insert(self, browser: OcrdBrowser) -> None:
         await BrowserProcess(  # type: ignore
+            address=browser.address(),
             owner=browser.owner(),
             process_id=browser.process_id(),
             workspace=browser.workspace(),
         ).insert()
 
-    async def delete(self, browser: BrowserProcessProtocol) -> None:
+    async def delete(self, browser: OcrdBrowser) -> None:
         await BrowserProcess(  # type: ignore
             owner=browser.owner(),
             process_id=browser.process_id(),
@@ -45,8 +51,7 @@ class MongoBrowserProcessRepository:
         *,
         owner: str | None = None,
         workspace: str | None = None,
-        process_id: str | None = None,
-    ) -> Collection[BrowserProcess]:
+    ) -> Collection[OcrdBrowser]:
         results: FindMany[BrowserProcess] | None = None
 
         def find(
@@ -64,10 +69,10 @@ class MongoBrowserProcessRepository:
         if workspace is not None:
             results = find(results, BrowserProcess.workspace == workspace)
 
-        if process_id is not None:
-            results = find(results, BrowserProcess.process_id == process_id)
-
         return await results.to_list() if results is not None else []
+
+    async def clean(self) -> None:
+        await BrowserProcess.delete_all()
 
 
 async def init(connection_str: str) -> None:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import cast
 
 import uuid
 from pathlib import Path
@@ -7,12 +8,10 @@ from fastapi import APIRouter, Cookie, Request, Response, WebSocket, WebSocketDi
 from fastapi.templating import Jinja2Templates
 
 import ocrdbrowser
-from ocrdmonitor import dbmodel
 import ocrdmonitor.server.proxy as proxy
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
-from ocrdmonitor import dbmodel
 from ocrdmonitor.browserprocess import BrowserProcessRepository
-from ocrdmonitor.server.redirect import RedirectMap
+from ocrdmonitor.server.redirect import BrowserRedirect, RedirectMap
 
 
 def create_workspaces(
@@ -43,8 +42,13 @@ def create_workspaces(
         response = Response()
         response.set_cookie("session_id", session_id)
 
-        if (session_id, workspace) not in redirects:
+        existing_browsers = await repository.find(
+            owner=session_id, workspace=str(workspace)
+        )
+
+        if not existing_browsers:
             browser = await launch_browser(session_id, workspace)
+            print("Inserting", f"{workspace=}", f"owner={session_id}")
             redirects.add(session_id, workspace, browser)
             await repository.insert(browser)
 
@@ -59,9 +63,14 @@ def create_workspaces(
 
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
     async def ping_workspace(
-        request: Request, workspace: Path, session_id: str = Cookie(default=None)
+        workspace: Path, session_id: str = Cookie(default=None)
     ) -> Response:
-        redirect = redirects.get(session_id, workspace)
+        browsers = list(
+            await repository.find(
+                owner=session_id, workspace=str(workspace_dir / workspace)
+            )
+        )
+        redirect = BrowserRedirect(workspace, browsers[0])
         try:
             await proxy.forward(redirect, str(workspace))
             return Response(status_code=200)
@@ -75,7 +84,12 @@ def create_workspaces(
     async def workspace_reverse_proxy(
         request: Request, workspace: Path, session_id: str = Cookie(default=None)
     ) -> Response:
-        redirect = redirects.get(session_id, workspace)
+        browsers = list(
+            await repository.find(
+                owner=session_id, workspace=str(workspace_dir / workspace)
+            )
+        )
+        redirect = BrowserRedirect(workspace, browsers[0])
         try:
             return await proxy.forward(redirect, str(workspace))
         except ConnectionError:

@@ -1,15 +1,22 @@
 from typing import Collection
-from ocrdmonitor.browserprocess import BrowserProcess
+from ocrdbrowser import OcrdBrowser
+from ocrdmonitor.browserprocess import BrowserRestoringFactory
+from tests.testdoubles import BrowserSpy
 
 
 class InMemoryBrowserProcessRepository:
-    def __init__(self) -> None:
-        self._processes: list[BrowserProcess] = []
+    def __init__(
+        self, restoring_factory: BrowserRestoringFactory | None = None
+    ) -> None:
+        self._processes: list[OcrdBrowser] = []
+        self.restoring_factory: BrowserRestoringFactory = (
+            restoring_factory or BrowserSpy
+        )
 
-    async def insert(self, browser: BrowserProcess) -> None:
+    async def insert(self, browser: OcrdBrowser) -> None:
         self._processes.append(browser)
 
-    async def delete(self, browser: BrowserProcess) -> None:
+    async def delete(self, browser: OcrdBrowser) -> None:
         self._processes.remove(browser)
 
     async def find(
@@ -17,9 +24,8 @@ class InMemoryBrowserProcessRepository:
         *,
         owner: str | None = None,
         workspace: str | None = None,
-        process_id: str | None = None,
-    ) -> Collection[BrowserProcess]:
-        def match(browser: BrowserProcess) -> bool:
+    ) -> Collection[OcrdBrowser]:
+        def match(browser: OcrdBrowser) -> bool:
             matches = True
             if owner is not None:
                 matches = matches and browser.owner() == owner
@@ -27,9 +33,15 @@ class InMemoryBrowserProcessRepository:
             if workspace is not None:
                 matches = matches and browser.workspace() == workspace
 
-            if process_id is not None:
-                matches = matches and browser.process_id() == process_id
-
             return matches
 
-        return list(filter(match, self._processes))
+        return [
+            self.restoring_factory(
+                process_id=browser.process_id(),
+                owner=browser.owner(),
+                workspace=browser.workspace(),
+                address=browser.address(),
+            )
+            for browser in self._processes
+            if match(browser)
+        ]

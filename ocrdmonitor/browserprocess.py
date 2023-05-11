@@ -1,22 +1,19 @@
 from typing import Collection, Protocol
+from ocrdbrowser import OcrdBrowser
 
 
-class BrowserProcess(Protocol):
-    def process_id(self) -> str:
-        ...
-
-    def workspace(self) -> str:
-        ...
-
-    def owner(self) -> str:
+class BrowserRestoringFactory(Protocol):
+    def __call__(
+        self, owner: str, workspace: str, address: str, process_id: str
+    ) -> OcrdBrowser:
         ...
 
 
 class BrowserProcessRepository(Protocol):
-    async def insert(self, browser: BrowserProcess) -> None:
+    async def insert(self, browser: OcrdBrowser) -> None:
         ...
 
-    async def delete(self, browser: BrowserProcess) -> None:
+    async def delete(self, browser: OcrdBrowser) -> None:
         ...
 
     async def find(
@@ -24,6 +21,5 @@ class BrowserProcessRepository(Protocol):
         *,
         owner: str | None = None,
         workspace: str | None = None,
-        process_id: str | None = None,
-    ) -> Collection[BrowserProcess]:
+    ) -> Collection[OcrdBrowser]:
         ...

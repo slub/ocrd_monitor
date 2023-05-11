@@ -51,7 +51,7 @@ class OcrdBrowserClient(Protocol):
 class OcrdBrowserFactory(Protocol):
     def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         ...
-
+    
 
 BrowserProcesses = set[OcrdBrowser]
 

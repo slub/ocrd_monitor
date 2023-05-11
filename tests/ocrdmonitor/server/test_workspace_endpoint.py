@@ -1,29 +1,22 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager, contextmanager
-from typing import (
-    AsyncContextManager,
-    AsyncIterator,
-    Callable,
-    ContextManager,
-    Iterator,
-    cast,
-)
+from typing import AsyncIterator, cast
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import Response
-from testcontainers.mongodb import MongoDbContainer
 
-from ocrdbrowser import ChannelClosed
-from ocrdmonitor import dbmodel
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdbrowser import ChannelClosed, OcrdBrowser
+from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
+from ocrdmonitor.server.app import create_app
 from ocrdmonitor.server.settings import OcrdBrowserSettings
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.fixtures import (
     WORKSPACE_DIR,
+    create_settings,
     patch_factory,
+    patch_repository,
 )
 from tests.testdoubles import (
     Browser_Heading,
@@ -31,9 +24,9 @@ from tests.testdoubles import (
     BrowserSpy,
     BrowserTestDouble,
     BrowserTestDoubleFactory,
-    InMemoryBrowserProcessRepository,
     IteratingBrowserTestDoubleFactory,
     SingletonBrowserTestDoubleFactory,
+    InMemoryBrowserProcessRepository,
 )
 
 
@@ -181,11 +174,22 @@ def test__browsed_workspace_is_ready__when_pinging__returns_ok(
     assert result.status_code == 200
 
 
+@pytest.mark.usefixtures("iterating_factory")
 def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
-    singleton_browser_spy: BrowserSpy,
+    auto_repository: BrowserProcessRepository,
     app: TestClient,
 ) -> None:
-    singleton_browser_spy.configure_client(response=ConnectionError)
+    if isinstance(auto_repository, InMemoryBrowserProcessRepository):
+
+        def restore(
+            owner: str, workspace: str, address: str, process_id: str
+        ) -> OcrdBrowser:
+            spy = BrowserSpy(owner, workspace, address, process_id)
+            spy.configure_client(response=ConnectionError)
+            return spy
+
+        auto_repository.restoring_factory = restore
+
     workspace = "a_workspace"
     _ = view_workspace(app, workspace)
 
@@ -197,10 +201,46 @@ def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("iterating_factory")
 async def test__browsing_workspace__stores_browser_in_repository(
-    repository: BrowserProcessRepository, app: TestClient
+    auto_repository: BrowserProcessRepository, app: TestClient
 ) -> None:
     _ = view_workspace(app, "a_workspace")
 
-    found_browsers = await repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
+    found_browsers = list(
+        await auto_repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
+    )
 
     assert len(found_browsers) == 1
+
+
+@pytest.fixture
+def singleton_restoring_factory() -> BrowserRestoringFactory:
+    spy = BrowserSpy()
+
+    def factory(
+        owner: str, workspace: str, address: str, process_id: str
+    ) -> OcrdBrowser:
+        spy.set_owner_and_workspace(owner, workspace)
+        return spy
+
+    return factory
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("iterating_factory")
+async def test__browser_stored_in_repo__when_browsing_workspace_redirects_to_restored_browser(
+    singleton_restoring_factory: BrowserRestoringFactory,
+) -> None:
+    repository = InMemoryBrowserProcessRepository(singleton_restoring_factory)
+    async with patch_repository(repository):
+        app = TestClient(await create_app(create_settings()))
+
+        browser = cast(
+            BrowserSpy,
+            singleton_restoring_factory("the-owner", "a_workspace", "", ""),
+        )
+        browser.configure_client(response=b"RESTORED BROWSER")
+        await repository.insert(browser)
+
+        response = view_workspace(app, "a_workspace")
+
+    assert response.content == b"RESTORED BROWSER"

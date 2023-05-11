@@ -1,1 +1,1 @@
-from .fixtures import app, launch_monitor, repository
+from .fixtures import app, launch_monitor, auto_repository

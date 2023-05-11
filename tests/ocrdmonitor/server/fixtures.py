@@ -1,10 +1,12 @@
-from contextlib import asynccontextmanager, contextmanager
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import (
+    Any,
     AsyncContextManager,
     AsyncIterator,
+    Awaitable,
     Callable,
-    ContextManager,
     Iterator,
 )
 from unittest.mock import patch
@@ -15,8 +17,9 @@ import uvicorn
 from fastapi.testclient import TestClient
 from testcontainers.mongodb import MongoDbContainer
 
+from ocrdbrowser import OcrdBrowser
 from ocrdmonitor import dbmodel
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
 from ocrdmonitor.server.app import create_app
 from ocrdmonitor.server.settings import (
     OcrdBrowserSettings,
@@ -26,6 +29,7 @@ from ocrdmonitor.server.settings import (
 )
 from tests.testdoubles import (
     BackgroundProcess,
+    BrowserSpy,
     BrowserTestDoubleFactory,
     InMemoryBrowserProcessRepository,
 )
@@ -60,15 +64,37 @@ async def patch_factory(
 
 
 @asynccontextmanager
-async def mongodb_repository() -> AsyncIterator[dbmodel.MongoBrowserProcessRepository]:
+async def mongodb_repository(
+    restoring_factory: BrowserRestoringFactory,
+) -> AsyncIterator[dbmodel.MongoBrowserProcessRepository]:
     with MongoDbContainer() as container:
         await dbmodel.init(container.get_connection_url())
-        yield dbmodel.MongoBrowserProcessRepository()
+        yield dbmodel.MongoBrowserProcessRepository(restoring_factory)
 
 
 @asynccontextmanager
-async def inmemory_repository() -> AsyncIterator[InMemoryBrowserProcessRepository]:
-    yield InMemoryBrowserProcessRepository()
+async def inmemory_repository(
+    restoring_factory: BrowserRestoringFactory,
+) -> AsyncIterator[InMemoryBrowserProcessRepository]:
+    yield InMemoryBrowserProcessRepository(restoring_factory)
+
+
+def spy_restoring_factory() -> BrowserRestoringFactory:
+    def factory(
+        owner: str, workspace: str, address: str, process_id: str
+    ) -> OcrdBrowser:
+        return BrowserSpy(owner, workspace, address, process_id)
+
+    return factory
+
+
+@asynccontextmanager
+async def patch_repository(repository: BrowserProcessRepository) -> AsyncIterator[None]:
+    async def _repository(_: OcrdBrowserSettings) -> BrowserProcessRepository:
+        return repository
+
+    with patch.object(OcrdBrowserSettings, "repository", _repository):
+        yield
 
 
 @pytest_asyncio.fixture(
@@ -81,20 +107,16 @@ async def inmemory_repository() -> AsyncIterator[InMemoryBrowserProcessRepositor
         ),
     ],
 )
-async def repository(
-    monkeypatch: pytest.MonkeyPatch,
+async def auto_repository(
     request: pytest.FixtureRequest,
-) -> AsyncIterator[BrowserProcessRepository]:
+) -> AsyncIterator[BrowserProcessRepository] | None:
     repository_constructor: Callable[
-        [], AsyncContextManager[BrowserProcessRepository]
+        [BrowserRestoringFactory],
+        AsyncContextManager[BrowserProcessRepository],
     ] = request.param
-    async with repository_constructor() as repository:
-
-        async def async_repository(self: OcrdBrowserSettings) -> BrowserProcessRepository:
-            return repository
-
-        monkeypatch.setattr(OcrdBrowserSettings, "repository", async_repository)
-        yield repository
+    async with repository_constructor(spy_restoring_factory()) as repository:
+        async with patch_repository(repository):
+            yield repository
 
 
 @pytest_asyncio.fixture

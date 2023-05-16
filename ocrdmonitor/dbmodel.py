@@ -69,7 +69,19 @@ class MongoBrowserProcessRepository:
         if workspace is not None:
             results = find(results, BrowserProcess.workspace == workspace)
 
-        return await results.to_list() if results is not None else []
+        return (
+            [
+                self._restoring_factory(
+                    browser.owner,
+                    browser.workspace,
+                    browser.address,
+                    browser.process_id,
+                )
+                for browser in await results.to_list()
+            ]
+            if results
+            else []
+        )
 
     async def clean(self) -> None:
         await BrowserProcess.delete_all()

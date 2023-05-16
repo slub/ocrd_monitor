@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from textwrap import dedent
 from typing import AsyncGenerator, Type
 
-from ocrdbrowser import Channel, OcrdBrowserClient
+from ocrdbrowser import Channel, OcrdBrowserClient, RunningOcrdBrowser
 
 Browser_Heading = "OCRD BROWSER"
 
@@ -84,8 +84,9 @@ class BrowserSpy:
     def client(self) -> OcrdBrowserClient:
         return self._client
 
-    async def start(self) -> None:
+    async def start(self) -> RunningOcrdBrowser:
         self.is_running = True
+        return self
 
     async def stop(self) -> None:
         self.is_running = False

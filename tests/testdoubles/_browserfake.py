@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 
-from ocrdbrowser import HttpBrowserClient, OcrdBrowserClient
+from ocrdbrowser import HttpBrowserClient, OcrdBrowserClient, RunningOcrdBrowser
 
 from ._backgroundprocess import BackgroundProcess
 from ._broadwayfake import broadway_fake, FAKE_HOST_ADDRESS
@@ -36,9 +36,10 @@ class BrowserFake:
     def client(self) -> OcrdBrowserClient:
         return HttpBrowserClient(self.address())
 
-    async def start(self) -> None:
+    async def start(self) -> RunningOcrdBrowser:
         self._running = True
         await asyncio.to_thread(self._browser.launch)
+        return self
 
     async def stop(self) -> None:
         self._running = False

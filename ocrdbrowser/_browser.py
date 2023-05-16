@@ -5,6 +5,26 @@ from os import path
 from typing import AsyncContextManager, Protocol
 
 
+class RunningOcrdBrowser(Protocol):
+    def process_id(self) -> str:
+        ...
+
+    def address(self) -> str:
+        ...
+
+    def owner(self) -> str:
+        ...
+
+    def workspace(self) -> str:
+        ...
+
+    def client(self) -> OcrdBrowserClient:
+        ...
+
+    async def stop(self) -> None:
+        ...
+
+
 class OcrdBrowser(Protocol):
     def process_id(self) -> str:
         ...
@@ -21,7 +41,7 @@ class OcrdBrowser(Protocol):
     def client(self) -> OcrdBrowserClient:
         ...
 
-    async def start(self) -> None:
+    async def start(self) -> RunningOcrdBrowser:
         ...
 
     async def stop(self) -> None:
@@ -51,7 +71,7 @@ class OcrdBrowserClient(Protocol):
 class OcrdBrowserFactory(Protocol):
     def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         ...
-    
+
 
 BrowserProcesses = set[OcrdBrowser]
 

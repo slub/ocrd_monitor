@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import AsyncIterator, cast
+from typing import AsyncContextManager, AsyncIterator, Callable, cast
 
 import pytest
 import pytest_asyncio
@@ -10,12 +10,12 @@ from httpx import Response
 from ocrdbrowser import ChannelClosed, OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
 from ocrdmonitor.server.app import create_app
-from ocrdmonitor.server.settings import OcrdBrowserSettings
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures import (
-    WORKSPACE_DIR,
-    create_settings,
-    patch_factory,
+from tests.ocrdmonitor.server.fixtures.app import WORKSPACE_DIR, create_settings
+from tests.ocrdmonitor.server.fixtures.factory import patch_factory
+from tests.ocrdmonitor.server.fixtures.repository import (
+    inmemory_repository,
+    mongodb_repository,
     patch_repository,
 )
 from tests.testdoubles import (
@@ -26,7 +26,6 @@ from tests.testdoubles import (
     BrowserTestDoubleFactory,
     IteratingBrowserTestDoubleFactory,
     SingletonBrowserTestDoubleFactory,
-    InMemoryBrowserProcessRepository,
 )
 
 
@@ -174,26 +173,40 @@ def test__browsed_workspace_is_ready__when_pinging__returns_ok(
     assert result.status_code == 200
 
 
+@pytest.mark.asyncio
 @pytest.mark.usefixtures("iterating_factory")
-def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
-    auto_repository: BrowserProcessRepository,
-    app: TestClient,
+@pytest.mark.parametrize(
+    "repository",
+    (
+        inmemory_repository,
+        pytest.param(
+            mongodb_repository,
+            marks=(pytest.mark.integration, pytest.mark.needs_docker),
+        ),
+    ),
+)
+async def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
+    singleton_restoring_factory: BrowserRestoringFactory,
+    repository: Callable[
+        [BrowserRestoringFactory],
+        AsyncContextManager[BrowserProcessRepository],
+    ],
 ) -> None:
-    if isinstance(auto_repository, InMemoryBrowserProcessRepository):
+    async with repository(singleton_restoring_factory) as repo:
+        async with patch_repository(repo):
+            app = TestClient(await create_app(create_settings()))
 
-        def restore(
-            owner: str, workspace: str, address: str, process_id: str
-        ) -> OcrdBrowser:
-            spy = BrowserSpy(owner, workspace, address, process_id)
-            spy.configure_client(response=ConnectionError)
-            return spy
+            browser = cast(
+                BrowserSpy,
+                singleton_restoring_factory("the-owner", "a_workspace", "", ""),
+            )
+            browser.configure_client(response=ConnectionError)
+            await repo.insert(browser)
 
-        auto_repository.restoring_factory = restore
+            workspace = "a_workspace"
+            _ = view_workspace(app, workspace)
 
-    workspace = "a_workspace"
-    _ = view_workspace(app, workspace)
-
-    result = app.get(f"/workspaces/ping/{workspace}")
+            result = app.get(f"/workspaces/ping/{workspace}")
 
     assert result.status_code == 502
 
@@ -227,20 +240,35 @@ def singleton_restoring_factory() -> BrowserRestoringFactory:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("iterating_factory")
+@pytest.mark.parametrize(
+    "repository",
+    (
+        inmemory_repository,
+        pytest.param(
+            mongodb_repository,
+            marks=(pytest.mark.integration, pytest.mark.needs_docker),
+        ),
+    ),
+)
+@pytest.mark.no_auto_repository
 async def test__browser_stored_in_repo__when_browsing_workspace_redirects_to_restored_browser(
     singleton_restoring_factory: BrowserRestoringFactory,
+    repository: Callable[
+        [BrowserRestoringFactory],
+        AsyncContextManager[BrowserProcessRepository],
+    ],
 ) -> None:
-    repository = InMemoryBrowserProcessRepository(singleton_restoring_factory)
-    async with patch_repository(repository):
-        app = TestClient(await create_app(create_settings()))
+    async with repository(singleton_restoring_factory) as repo:
+        async with patch_repository(repo):
+            app = TestClient(await create_app(create_settings()))
 
-        browser = cast(
-            BrowserSpy,
-            singleton_restoring_factory("the-owner", "a_workspace", "", ""),
-        )
-        browser.configure_client(response=b"RESTORED BROWSER")
-        await repository.insert(browser)
+            browser = cast(
+                BrowserSpy,
+                singleton_restoring_factory("the-owner", "a_workspace", "", ""),
+            )
+            browser.configure_client(response=b"RESTORED BROWSER")
+            await repo.insert(browser)
 
-        response = view_workspace(app, "a_workspace")
+            response = view_workspace(app, "a_workspace")
 
     assert response.content == b"RESTORED BROWSER"

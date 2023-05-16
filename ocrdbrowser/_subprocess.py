@@ -6,7 +6,7 @@ import os
 from shutil import which
 from typing import Optional
 
-from ._browser import OcrdBrowser, OcrdBrowserClient
+from ._browser import OcrdBrowser, OcrdBrowserClient, RunningOcrdBrowser
 from ._port import Port
 from ._client import HttpBrowserClient
 
@@ -27,10 +27,6 @@ class SubProcessOcrdBrowser:
         return str(self._process.pid)
 
     def address(self) -> str:
-        # as long as we do not have a reverse proxy on BW_PORT,
-        # we must map the local port range to the exposed range
-        # (we use 8085 as fixed start of the internal port range,
-        #  and map to the runtime corresponding external port)
         localport = self._localport.get()
         return "http://localhost:" + str(localport)
 
@@ -40,7 +36,7 @@ class SubProcessOcrdBrowser:
     def owner(self) -> str:
         return self._owner
 
-    async def start(self) -> None:
+    async def start(self) -> RunningOcrdBrowser:
         browse_ocrd = which("browse-ocrd")
         if not browse_ocrd:
             raise FileNotFoundError("Could not find browse-ocrd executable")
@@ -66,6 +62,8 @@ class SubProcessOcrdBrowser:
             ),
             env=environment,
         )
+
+        return self
 
     async def stop(self) -> None:
         if self._process:

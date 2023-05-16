@@ -8,12 +8,13 @@ from typing import Generator
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
+
 from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.ocrdjob import OcrdJob
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.server.settings import OcrdControllerSettings
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures import JOB_DIR
+from tests.ocrdmonitor.server.fixtures.app import JOB_DIR
 from tests.ocrdmonitor.test_jobs import JOB_TEMPLATE, jobfile_content_for
 
 

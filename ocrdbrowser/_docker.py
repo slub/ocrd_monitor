@@ -5,7 +5,7 @@ import logging
 import os.path as path
 from typing import Any
 
-from ._browser import OcrdBrowser, OcrdBrowserClient
+from ._browser import OcrdBrowser, OcrdBrowserClient, RunningOcrdBrowser
 from ._port import Port
 from ._client import HttpBrowserClient
 
@@ -42,11 +42,12 @@ class DockerOcrdBrowser:
     def owner(self) -> str:
         return self._owner
 
-    async def start(self) -> None:
+    async def start(self) -> RunningOcrdBrowser:
         cmd = await _run_command(
             _docker_run, self._container_name(), self._workspace, self._port.get()
         )
         self.id = str(cmd.stdout).strip()
+        return self
 
     async def stop(self) -> None:
         cmd = await _run_command(
@@ -67,6 +68,39 @@ class DockerOcrdBrowser:
     def _container_name(self) -> str:
         workspace = path.basename(self.workspace())
         return f"ocrd-browser-{self.owner()}-{workspace}"
+
+
+class RunningDockerOcrdBrowser:
+    def __init__(
+        self, owner: str, workspace: str, address: str, process_id: str
+    ) -> None:
+        self._owner = owner
+        self._workspace = workspace
+        self._address = address
+        self._process_id = process_id
+
+    def process_id(self) -> str:
+        return self._process_id
+
+    def address(self) -> str:
+        return self._address
+
+    def workspace(self) -> str:
+        return self._workspace
+
+    def owner(self) -> str:
+        return self._owner
+
+    async def stop(self) -> None:
+        cmd = await _run_command(_docker_stop, self._process_id)
+
+        if cmd.returncode != 0:
+            logging.info(
+                f"Stopping container {self._process_id} returned exit code {cmd.returncode}"
+            )
+
+    def client(self) -> OcrdBrowserClient:
+        return HttpBrowserClient(self._address)
 
 
 class DockerOcrdBrowserFactory:

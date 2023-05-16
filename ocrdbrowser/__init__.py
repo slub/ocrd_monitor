@@ -5,6 +5,7 @@ from ._browser import (
     OcrdBrowser,
     OcrdBrowserClient,
     OcrdBrowserFactory,
+    RunningOcrdBrowser,
     filter_owned,
     in_other_workspaces,
     in_same_workspace,
@@ -12,10 +13,10 @@ from ._browser import (
     stop_all,
     stop_owned_in_workspace,
 )
+from ._client import HttpBrowserClient
 from ._docker import DockerOcrdBrowserFactory
 from ._port import NoPortsAvailableError
 from ._subprocess import SubProcessOcrdBrowserFactory
-from ._client import HttpBrowserClient
 
 __all__ = [
     "Channel",
@@ -26,6 +27,7 @@ __all__ = [
     "OcrdBrowser",
     "OcrdBrowserClient",
     "OcrdBrowserFactory",
+    "RunningOcrdBrowser",
     "SubProcessOcrdBrowserFactory",
     "filter_owned",
     "launch",

@@ -10,6 +10,9 @@ class BrowserTestDouble(OcrdBrowser, Protocol):
     def set_owner_and_workspace(self, owner: str, workspace: str) -> None:
         ...
 
+    async def start(self) -> None:
+        ...
+
     @property
     def is_running(self) -> bool:
         ...
@@ -19,8 +22,9 @@ class SingletonBrowserTestDoubleFactory:
     def __init__(self, browser: BrowserTestDouble | None = None) -> None:
         self._browser = browser or BrowserSpy()
 
-    def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
+    async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         self._browser.set_owner_and_workspace(owner, workspace_path)
+        await self._browser.start()
         return self._browser
 
     async def __aenter__(self) -> Self:
@@ -49,9 +53,10 @@ class IteratingBrowserTestDoubleFactory:
     def add(self, process: BrowserTestDouble) -> None:
         self._processes.append(process)
 
-    def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
+    async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         browser = next(self._proc_iter, self._default_browser())
         browser.set_owner_and_workspace(owner, workspace_path)
+        await browser.start()
         self._created.append(browser)
         return browser
 

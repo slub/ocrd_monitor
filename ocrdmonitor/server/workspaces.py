@@ -6,7 +6,6 @@ from pathlib import Path
 from fastapi import APIRouter, Cookie, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 
-import ocrdbrowser
 import ocrdmonitor.server.proxy as proxy
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
 from ocrdmonitor.browserprocess import BrowserProcessRepository
@@ -47,7 +46,6 @@ def create_workspaces(
 
         if not existing_browsers:
             browser = await launch_browser(session_id, workspace)
-            print("Inserting", f"{workspace=}", f"owner={session_id}")
             redirects.add(session_id, workspace, browser)
             await repository.insert(browser)
 
@@ -119,7 +117,7 @@ def create_workspaces(
 
     async def launch_browser(session_id: str, workspace: Path) -> OcrdBrowser:
         full_workspace_path = workspace_dir / workspace
-        return await ocrdbrowser.launch(str(full_workspace_path), session_id, factory)
+        return await factory(session_id, str(full_workspace_path))
 
     async def stop_browser(browser: OcrdBrowser) -> None:
         await browser.stop()

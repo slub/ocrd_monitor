@@ -14,6 +14,13 @@ from tests.testdoubles import (
     BrowserSpy,
     InMemoryBrowserProcessRepository,
 )
+from tests.testdoubles._browserfactory import SingletonRestoringBrowserFactory
+
+
+RepositoryInitializer = Callable[
+    [BrowserRestoringFactory],
+    AsyncContextManager[BrowserProcessRepository],
+]
 
 
 @asynccontextmanager
@@ -36,7 +43,7 @@ def spy_restoring_factory() -> BrowserRestoringFactory:
     def factory(
         owner: str, workspace: str, address: str, process_id: str
     ) -> OcrdBrowser:
-        return BrowserSpy(owner, workspace, address, process_id)
+        return BrowserSpy(owner, workspace, address, process_id, running=True)
 
     return factory
 
@@ -74,10 +81,15 @@ async def auto_repository(
         # raises a StopIterationError if we return or yield None
         yield 0
     else:
-        repository_constructor: Callable[
-            [BrowserRestoringFactory],
-            AsyncContextManager[BrowserProcessRepository],
-        ] = request.param
+        repository_constructor: RepositoryInitializer = request.param
         async with repository_constructor(spy_restoring_factory()) as repository:
             async with patch_repository(repository):
                 yield repository
+
+
+@pytest_asyncio.fixture
+async def singleton_restoring_factory() -> AsyncIterator[
+    SingletonRestoringBrowserFactory
+]:
+    async with SingletonRestoringBrowserFactory() as factory:
+        yield factory

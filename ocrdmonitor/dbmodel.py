@@ -9,6 +9,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserRestoringFactory
 
+from pymongo.results import DeleteResult
+
 
 class BrowserProcess(Document):
     address: str
@@ -40,10 +42,11 @@ class MongoBrowserProcessRepository:
         ).insert()
 
     async def delete(self, browser: OcrdBrowser) -> None:
-        await BrowserProcess(  # type: ignore
-            owner=browser.owner(),
-            process_id=browser.process_id(),
-            workspace=browser.workspace(),
+        await BrowserProcess.find_one(
+            BrowserProcess.owner == browser.owner(),
+            BrowserProcess.workspace == browser.workspace(),
+            BrowserProcess.address == browser.address(),
+            BrowserProcess.process_id == browser.process_id(),
         ).delete()
 
     async def find(

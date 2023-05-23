@@ -1,23 +1,46 @@
-from typing import Collection
+from typing import Collection, NamedTuple
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserRestoringFactory
 from tests.testdoubles import BrowserSpy
+
+
+class BrowserEntry(NamedTuple):
+    owner: str
+    workspace: str
+    address: str
+    process_id: str
 
 
 class InMemoryBrowserProcessRepository:
     def __init__(
         self, restoring_factory: BrowserRestoringFactory | None = None
     ) -> None:
-        self._processes: list[OcrdBrowser] = []
+        self._processes: list[BrowserEntry] = []
         self.restoring_factory: BrowserRestoringFactory = (
             restoring_factory or BrowserSpy
         )
 
     async def insert(self, browser: OcrdBrowser) -> None:
-        self._processes.append(browser)
+        entry = BrowserEntry(
+            browser.owner(),
+            browser.workspace(),
+            browser.address(),
+            browser.process_id(),
+        )
+
+        print(f"We're adding {entry}")
+        self._processes.append(entry)
 
     async def delete(self, browser: OcrdBrowser) -> None:
-        self._processes.remove(browser)
+        entry = BrowserEntry(
+            browser.owner(),
+            browser.workspace(),
+            browser.address(),
+            browser.process_id(),
+        )
+
+        print(f"We're deleting {entry}")
+        self._processes.remove(entry)
 
     async def find(
         self,
@@ -25,22 +48,22 @@ class InMemoryBrowserProcessRepository:
         owner: str | None = None,
         workspace: str | None = None,
     ) -> Collection[OcrdBrowser]:
-        def match(browser: OcrdBrowser) -> bool:
+        def match(browser: BrowserEntry) -> bool:
             matches = True
             if owner is not None:
-                matches = matches and browser.owner() == owner
+                matches = matches and browser.owner == owner
 
             if workspace is not None:
-                matches = matches and browser.workspace() == workspace
+                matches = matches and browser.workspace == workspace
 
             return matches
 
         return [
             self.restoring_factory(
-                process_id=browser.process_id(),
-                owner=browser.owner(),
-                workspace=browser.workspace(),
-                address=browser.address(),
+                process_id=browser.process_id,
+                owner=browser.owner,
+                workspace=browser.workspace,
+                address=browser.address,
             )
             for browser in self._processes
             if match(browser)

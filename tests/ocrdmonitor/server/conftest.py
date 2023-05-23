@@ -5,4 +5,5 @@ from .fixtures.repository import (
     inmemory_repository,  # noqa: F401
     mongodb_repository,  # noqa: F401
     patch_repository,  # noqa: F401
+    singleton_restoring_factory,  # noqa: F401
 )

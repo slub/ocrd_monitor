@@ -1,6 +1,6 @@
 import asyncio
 from types import TracebackType
-from typing import Callable, Protocol, Self, Type
+from typing import Any, Callable, Protocol, Self, Type
 
 from ocrdbrowser import OcrdBrowser
 from ._browserspy import BrowserSpy
@@ -77,3 +77,23 @@ class IteratingBrowserTestDoubleFactory:
 BrowserTestDoubleFactory = (
     SingletonBrowserTestDoubleFactory | IteratingBrowserTestDoubleFactory
 )
+
+
+class SingletonRestoringBrowserFactory:
+    def __init__(self) -> None:
+        self.browser = BrowserSpy()
+
+    async def __aenter__(self) -> "SingletonRestoringBrowserFactory":
+        await self.browser.start()
+        return self
+
+    async def __aexit__(self, *args: Any, **kwargs: Any) -> None:
+        await self.browser.stop()
+
+    def __call__(
+        self, owner: str, workspace: str, address: str, process_id: str
+    ) -> OcrdBrowser:
+        self.browser.set_owner_and_workspace(owner, workspace)
+        self.browser._address = address
+        self.browser._process_id = process_id
+        return self.browser

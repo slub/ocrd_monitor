@@ -20,8 +20,6 @@ def create_workspaces(
 ) -> APIRouter:
     router = APIRouter(prefix="/workspaces")
 
-    redirects = RedirectMap()
-
     @router.get("/", name="workspaces.list")
     def list_workspaces(request: Request) -> Response:
         spaces = [
@@ -40,13 +38,13 @@ def create_workspaces(
         response = Response()
         response.set_cookie("session_id", session_id)
 
+        full_workspace = str(workspace_dir / workspace)
         existing_browsers = await repository.find(
-            owner=session_id, workspace=str(workspace)
+            owner=session_id, workspace=full_workspace
         )
 
         if not existing_browsers:
             browser = await launch_browser(session_id, workspace)
-            redirects.add(session_id, workspace, browser)
             await repository.insert(browser)
 
         return response
@@ -67,11 +65,11 @@ def create_workspaces(
                 owner=session_id, workspace=str(workspace_dir / workspace)
             )
         )
-        redirect = BrowserRedirect(workspace, browsers[0])
         try:
+            redirect = BrowserRedirect(workspace, browsers[0])
             await proxy.forward(redirect, str(workspace))
             return Response(status_code=200)
-        except ConnectionError:
+        except (ConnectionError, IndexError):
             return Response(status_code=502)
 
     # NOTE: It is important that the route path here ends with a slash, otherwise
@@ -90,6 +88,7 @@ def create_workspaces(
         try:
             return await proxy.forward(redirect, str(workspace))
         except ConnectionError:
+            await stop_browser(redirect.browser)
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
                 {"request": request, "workspace": workspace},
@@ -99,7 +98,16 @@ def create_workspaces(
     async def workspace_socket_proxy(
         websocket: WebSocket, workspace: Path, session_id: str = Cookie(default=None)
     ) -> None:
-        redirect = redirects.get(session_id, workspace)
+        browsers = list(
+            await repository.find(
+                owner=session_id, workspace=str(workspace_dir / workspace)
+            )
+        )
+
+        if not browsers:
+            await websocket.close(reason="No browser found")
+
+        redirect = BrowserRedirect(workspace, browsers[0])
         await websocket.accept(subprotocol="broadway")
         await communicate_with_browser_until_closed(websocket, redirect.browser)
 
@@ -121,7 +129,6 @@ def create_workspaces(
 
     async def stop_browser(browser: OcrdBrowser) -> None:
         await browser.stop()
-        key = Path(browser.workspace()).relative_to(workspace_dir)
-        redirects.remove(browser.owner(), key)
+        await repository.delete(browser)
 
     return router

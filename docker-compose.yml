@@ -15,6 +15,7 @@ services:
     environment:
       MONITOR_PORT_LOG: ${MONITOR_PORT_LOG}
       CONTROLLER: "${CONTROLLER_HOST}:${CONTROLLER_PORT_SSH}"
+      DB_CONNECTION: "${DB_ROOT_USER:-root}:${DB_ROOT_PASSWORD:-root_password}@ocrd-database:27017"
 
     ports:
       - ${MONITOR_PORT_WEB}:5000
@@ -25,17 +26,29 @@ services:
       - ${MANAGER_KEY}:/id_rsa
       - shared:/run/lock/ocrd.jobs
 
-  ocrd-logview:
-    image: amir20/dozzle:latest
-    volumes:
-      # double slash is mandatory to support windows
-      - //var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - ${MONITOR_PORT_LOG}:8080
+  # ocrd-logview:
+  #   image: amir20/dozzle:latest
+  #   volumes:
+  #     # double slash is mandatory to support windows
+  #     - //var/run/docker.sock:/var/run/docker.sock
+  #   ports:
+  #     - ${MONITOR_PORT_LOG}:8080
+  #   environment:
+  #     - DOZZLE_FILTER=name=ocrd_kitodo
+  #     # DOZZLE_USERNAME=
+  #     # DOZZLE_PASSWORD=
+
+  ocrd-database:
+    image: "mongo:latest"
+
     environment:
-      - DOZZLE_FILTER=name=ocrd_kitodo
-      # DOZZLE_USERNAME=
-      # DOZZLE_PASSWORD=
+      MONGO_INITDB_ROOT_USERNAME: ${DB_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+
+    volumes:
+      - db-volume:/data/db
+
 
 volumes:
+  db-volume:
   shared:

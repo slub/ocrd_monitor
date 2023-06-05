@@ -9,7 +9,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserRestoringFactory
 
-from pymongo.results import DeleteResult
 
 
 class BrowserProcess(Document):

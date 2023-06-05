@@ -20,7 +20,7 @@ STATIC_DIR = PKG_DIR / "static"
 TEMPLATE_DIR = PKG_DIR / "templates"
 
 
-async def create_app(settings: Settings) -> FastAPI:
+def create_app(settings: Settings) -> FastAPI:
     app = FastAPI()
     templates = Jinja2Templates(TEMPLATE_DIR)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -40,14 +40,7 @@ async def create_app(settings: Settings) -> FastAPI:
             ),
         )
     )
-    app.include_router(
-        create_workspaces(
-            templates,
-            settings.ocrd_browser.factory(),
-            await settings.ocrd_browser.repository(),
-            settings.ocrd_browser.workspace_dir,
-        )
-    )
+    app.include_router(create_workspaces(templates, settings.ocrd_browser))
     app.include_router(create_logs(templates, settings.ocrd_browser.workspace_dir))
     app.include_router(create_workflows(templates))
     app.include_router(create_logview(templates, settings.ocrd_logview.port))

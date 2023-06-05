@@ -8,12 +8,14 @@ from typing import Literal
 from pydantic import BaseModel, BaseSettings, validator
 
 from ocrdbrowser import (
+    DockerOcrdBrowser,
     DockerOcrdBrowserFactory,
     OcrdBrowserFactory,
     SubProcessOcrdBrowserFactory,
+    SubProcessOcrdBrowser,
 )
 from ocrdmonitor import dbmodel
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
 
 from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.sshremote import SSHRemote
@@ -42,7 +44,10 @@ class OcrdBrowserSettings(BaseModel):
 
     async def repository(self) -> BrowserProcessRepository:
         await dbmodel.init(self.db_connection_string)
-        return dbmodel.MongoBrowserProcessRepository()
+        restore: BrowserRestoringFactory = (
+            SubProcessOcrdBrowser if self.mode == "native" else DockerOcrdBrowser
+        )
+        return dbmodel.MongoBrowserProcessRepository(restore)
 
     def factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.port_range))

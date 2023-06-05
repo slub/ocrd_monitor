@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Iterator
 
 import pytest
-import pytest_asyncio
 import uvicorn
 from fastapi.testclient import TestClient
 
@@ -35,9 +34,9 @@ def create_settings() -> Settings:
     )
 
 
-@pytest_asyncio.fixture
-async def app() -> TestClient:
-    return TestClient(await create_app(create_settings()))
+@pytest.fixture
+def app() -> TestClient:
+    return TestClient(create_app(create_settings()))
 
 
 def _launch_app() -> None:

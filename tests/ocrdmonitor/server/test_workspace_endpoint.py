@@ -146,7 +146,7 @@ async def test__opened_workspace__when_socket_disconnects_on_broadway_side__shut
 
     async with repository(factory) as repo:
         async with patch_repository(repo):
-            app = TestClient(await create_app(create_settings()))
+            app = TestClient(create_app(create_settings()))
             await repo.insert(disconnecting_browser)
 
             _ = interact_with_workspace(app, "a_workspace")
@@ -186,7 +186,7 @@ async def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
 ) -> None:
     async with repository(singleton_restoring_factory) as repo:
         async with patch_repository(repo):
-            app = TestClient(await create_app(create_settings()))
+            app = TestClient(create_app(create_settings()))
 
             browser = singleton_restoring_factory.browser
             browser.configure_client(response=ConnectionError)
@@ -224,7 +224,7 @@ async def test__error_connecting_to_workspace__removes_browser_from_repository(
 
     async with repository(singleton_restoring_factory) as repo:
         async with patch_repository(repo):
-            app = TestClient(await create_app(create_settings()))
+            app = TestClient(create_app(create_settings()))
             app.cookies.set("session_id", browser.owner())
 
             open_workspace(app, "a_workspace")
@@ -248,7 +248,7 @@ async def test__when_socket_to_workspace_disconnects__removes_browser_from_repos
 
     async with repository(singleton_restoring_factory) as repo:
         async with patch_repository(repo):
-            app = TestClient(await create_app(create_settings()))
+            app = TestClient(create_app(create_settings()))
             app.cookies.set("session_id", browser.owner())
 
             _ = interact_with_workspace(app, "a_workspace")
@@ -268,7 +268,7 @@ async def test__browser_stored_in_repo__when_browsing_workspace_redirects_to_res
 ) -> None:
     async with repository(singleton_restoring_factory) as repo:
         async with patch_repository(repo):
-            app = TestClient(await create_app(create_settings()))
+            app = TestClient(create_app(create_settings()))
 
             browser = singleton_restoring_factory.browser
             browser.configure_client(response=b"RESTORED BROWSER")

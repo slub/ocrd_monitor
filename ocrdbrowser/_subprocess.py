@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import signal
 from shutil import which
@@ -51,6 +52,7 @@ class SubProcessOcrdBrowserFactory:
         browser = SubProcessOcrdBrowser(
             owner, workspace_path, address, str(process.pid)
         )
+        print("Launched Process ID", process.pid)
         return browser
 
     async def start_browser(
@@ -69,15 +71,19 @@ class SubProcessOcrdBrowserFactory:
         environment["GDK_BACKEND"] = "broadway"
         environment["BROADWAY_DISPLAY"] = ":" + displayport
 
-        return await asyncio.create_subprocess_shell(
-            " ".join(
-                [
-                    "broadwayd",
-                    ":" + displayport + " &",
-                    browse_ocrd,
-                    workspace + "/mets.xml ;",
-                    "kill $!",
-                ]
-            ),
-            env=environment,
-        )
+        try:
+            return await asyncio.create_subprocess_shell(
+                " ".join(
+                    [
+                        "broadwayd",
+                        ":" + displayport + " &",
+                        browse_ocrd,
+                        workspace + "/mets.xml ;",
+                        "kill $!",
+                    ]
+                ),
+                env=environment,
+            )
+        except Exception as err:
+            logging.error(f"Tried to launch broadway at {displayport} (real port {port})")
+            raise err

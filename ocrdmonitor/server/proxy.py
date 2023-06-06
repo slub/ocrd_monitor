@@ -3,14 +3,19 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import Response
-from ocrdbrowser import Channel
+from ocrdbrowser import OcrdBrowser, Channel
+from difflib import SequenceMatcher
 
-from .redirect import BrowserRedirect
+
+def get_redirect_url(browser: OcrdBrowser, url: str) -> str:
+    matcher = SequenceMatcher(None, browser.workspace(), url)
+    match = matcher.find_longest_match()
+    return url[match.size :]
 
 
-async def forward(redirect: BrowserRedirect, url: str) -> Response:
-    redirect_url = redirect.redirect_url(url)
-    resource = await redirect.browser.client().get(redirect_url)
+async def forward(browser: OcrdBrowser, url: str) -> Response:
+    url = get_redirect_url(browser, url)
+    resource = await browser.client().get(url)
     return Response(content=resource)
 
 

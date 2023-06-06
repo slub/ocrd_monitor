@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from textwrap import dedent
-from typing import AsyncGenerator, Type
+from typing import AsyncGenerator, Callable, Type
 
 from ocrdbrowser import Channel, OcrdBrowserClient
 
@@ -28,12 +28,19 @@ class ChannelDummy:
 
 class BrowserClientStub:
     def __init__(
-        self, response: bytes | Type[Exception] = b"", channel: Channel | None = None
+        self,
+        response: bytes | Type[Exception] = b"",
+        channel: Channel | None = None,
+        response_factory: Callable[[str], bytes] | None = None,
     ) -> None:
         self.channel = channel or ChannelDummy()
         self.response = response or html_template.encode()
+        self.response_factory = response_factory
 
     async def get(self, resource: str) -> bytes:
+        if self.response_factory is not None:
+            return self.response_factory(resource)
+
         if not isinstance(self.response, bytes):
             raise self.response
 
@@ -61,9 +68,12 @@ class BrowserSpy:
         self._client = BrowserClientStub()
 
     def configure_client(
-        self, response: bytes | Type[Exception] = b"", channel: Channel | None = None
+        self,
+        response: bytes | Type[Exception] = b"",
+        channel: Channel | None = None,
+        response_factory: Callable[[str], bytes] | None = None,
     ) -> None:
-        self._client = BrowserClientStub(response, channel)
+        self._client = BrowserClientStub(response, channel, response_factory)
 
     def set_owner_and_workspace(self, owner: str, workspace: str) -> None:
         self.owner_name = owner

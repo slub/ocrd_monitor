@@ -166,6 +166,29 @@ def test__disconnected_workspace__when_opening_again__viewing_proxies_requests_t
     assert_is_browser_response(actual)
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("iterating_factory")
+@use_custom_repository
+async def test__when_requesting_resource__returns_resource_from_workspace(
+    repository: RepositoryInitializer,
+) -> None:
+    factory = SingletonRestoringBrowserFactory()
+    factory.browser.configure_client(response_factory=lambda path: path.encode())
+
+    workspace = "a_workspace"
+    resource = "/some_resource"
+    resource_in_workspace = workspace + "/some_resource"
+
+    async with repository(factory) as repo:
+        async with patch_repository(repo):
+            app = TestClient(create_app(create_settings()))
+            open_workspace(app, workspace)
+
+            actual = view_workspace(app, resource_in_workspace)
+
+            assert actual.content == resource.encode()
+
+
 @pytest.mark.usefixtures("iterating_factory")
 def test__browsed_workspace_is_ready__when_pinging__returns_ok(
     app: TestClient,

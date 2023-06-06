@@ -77,7 +77,10 @@ class DockerOcrdBrowserFactory:
             port.get(),
         )
 
-        container_id = str(cmd.stdout).strip()
+        stdout = cmd.stdout
+        container_id = ""
+        if stdout:
+            container_id = str(await stdout.read()).strip()
 
         container = DockerOcrdBrowser(
             owner,

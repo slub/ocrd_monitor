@@ -17,7 +17,6 @@ from fastapi.templating import Jinja2Templates
 from ocrdbrowser import ChannelClosed, OcrdBrowser, OcrdBrowserFactory, workspace
 from ocrdmonitor.browserprocess import BrowserProcessRepository
 from ocrdmonitor.server import proxy
-from ocrdmonitor.server.redirect import BrowserRedirect
 from ocrdmonitor.server.settings import OcrdBrowserSettings
 
 
@@ -73,7 +72,7 @@ def create_workspaces(
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
     async def ping_workspace(
         workspace: Path,
-        session_id: str = Cookie(default=None),
+        session_id: str = Cookie(),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
         browsers = list(
@@ -81,9 +80,10 @@ def create_workspaces(
                 owner=session_id, workspace=str(WORKSPACE_DIR / workspace)
             )
         )
+
         try:
-            redirect = BrowserRedirect(workspace, browsers[0])
-            await proxy.forward(redirect, str(workspace))
+            browser = browsers.pop()
+            await proxy.forward(browser, str(workspace))
             return Response(status_code=200)
         except (ConnectionError, IndexError):
             return Response(status_code=502)
@@ -95,19 +95,21 @@ def create_workspaces(
     async def workspace_reverse_proxy(
         request: Request,
         workspace: Path,
-        session_id: str = Cookie(default=None),
+        session_id: str = Cookie(),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
-        browsers = list(
-            await repository.find(
-                owner=session_id, workspace=str(WORKSPACE_DIR / workspace)
-            )
-        )
-        redirect = BrowserRedirect(workspace, browsers[0])
+        requested_path = str(WORKSPACE_DIR / workspace)
+        browsers = [
+            b
+            for b in await repository.find(owner=session_id)
+            if requested_path.startswith(b.workspace())
+        ]
+
+        browser = browsers.pop()
         try:
-            return await proxy.forward(redirect, str(workspace))
+            return await proxy.forward(browser, str(workspace))
         except ConnectionError:
-            await stop_browser(repository, redirect.browser)
+            await stop_browser(repository, browser)
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
                 {"request": request, "workspace": workspace},
@@ -117,7 +119,7 @@ def create_workspaces(
     async def workspace_socket_proxy(
         websocket: WebSocket,
         workspace: Path,
-        session_id: str = Cookie(default=None),
+        session_id: str = Cookie(),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> None:
         browsers = list(
@@ -129,11 +131,9 @@ def create_workspaces(
         if not browsers:
             await websocket.close(reason="No browser found")
 
-        redirect = BrowserRedirect(workspace, browsers[0])
+        browser = browsers.pop()
         await websocket.accept(subprotocol="broadway")
-        await communicate_with_browser_until_closed(
-            repository, websocket, redirect.browser
-        )
+        await communicate_with_browser_until_closed(repository, websocket, browser)
 
     async def communicate_with_browser_until_closed(
         repository: BrowserProcessRepository, websocket: WebSocket, browser: OcrdBrowser

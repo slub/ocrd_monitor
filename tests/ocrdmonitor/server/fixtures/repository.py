@@ -28,7 +28,6 @@ async def mongodb_repository(
     restoring_factory: BrowserRestoringFactory,
 ) -> AsyncIterator[dbmodel.MongoBrowserProcessRepository]:
     with MongoDbContainer() as container:
-        print(container.get_connection_url())
         await dbmodel.init(container.get_connection_url())
         yield dbmodel.MongoBrowserProcessRepository(restoring_factory)
 

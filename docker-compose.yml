@@ -26,20 +26,21 @@ services:
       - ${MANAGER_KEY}:/id_rsa
       - shared:/run/lock/ocrd.jobs
 
-  # ocrd-logview:
-  #   image: amir20/dozzle:latest
-  #   volumes:
-  #     # double slash is mandatory to support windows
-  #     - //var/run/docker.sock:/var/run/docker.sock
-  #   ports:
-  #     - ${MONITOR_PORT_LOG}:8080
-  #   environment:
-  #     - DOZZLE_FILTER=name=ocrd_kitodo
-  #     # DOZZLE_USERNAME=
-  #     # DOZZLE_PASSWORD=
+  ocrd-logview:
+    image: amir20/dozzle:latest
+    volumes:
+      # double slash is mandatory to support windows
+      - //var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - ${MONITOR_PORT_LOG}:8080
+    environment:
+      - DOZZLE_FILTER=name=ocrd_kitodo
+      # DOZZLE_USERNAME=
+      # DOZZLE_PASSWORD=
 
   ocrd-database:
     image: "mongo:latest"
+    container_name: ocrd-database
 
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${DB_ROOT_USER:-root}

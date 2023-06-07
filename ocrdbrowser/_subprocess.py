@@ -47,12 +47,11 @@ class SubProcessOcrdBrowserFactory:
 
     async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         port = Port(self._available_ports).get()
-        address = f"https://localhost:{port}"
+        address = f"http://localhost:{port}"
         process = await self.start_browser(workspace_path, port)
         browser = SubProcessOcrdBrowser(
             owner, workspace_path, address, str(process.pid)
         )
-        print("Launched Process ID", process.pid)
         return browser
 
     async def start_browser(
@@ -85,5 +84,5 @@ class SubProcessOcrdBrowserFactory:
                 env=environment,
             )
         except Exception as err:
-            logging.error(f"Tried to launch broadway at {displayport} (real port {port})")
+            logging.error(f"Failed to launch broadway at {displayport} (real port {port})")
             raise err

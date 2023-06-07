@@ -28,7 +28,6 @@ class InMemoryBrowserProcessRepository:
             browser.process_id(),
         )
 
-        print(f"We're adding {entry}")
         self._processes.append(entry)
 
     async def delete(self, browser: OcrdBrowser) -> None:
@@ -39,7 +38,6 @@ class InMemoryBrowserProcessRepository:
             browser.process_id(),
         )
 
-        print(f"We're deleting {entry}")
         self._processes.remove(entry)
 
     async def find(

@@ -37,6 +37,7 @@ create_docker_browser_factory = functools.partial(
 
 browser_factory_test = compose(
     pytest.mark.asyncio,
+    pytest.mark.integration,
     pytest.mark.parametrize(
         "create_browser_factory",
         (

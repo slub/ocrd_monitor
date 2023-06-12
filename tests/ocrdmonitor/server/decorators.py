@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Coroutine, ParamSpec
+from typing import Any, Callable
 import pytest
 
 from tests.ocrdmonitor.server.fixtures.repository import (

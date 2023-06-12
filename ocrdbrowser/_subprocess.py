@@ -8,7 +8,7 @@ from shutil import which
 
 from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._client import HttpBrowserClient
-from ._port import Port
+from ._port import NoPortsAvailableError
 
 BROADWAY_BASE_PORT = 8080
 
@@ -46,13 +46,19 @@ class SubProcessOcrdBrowserFactory:
         self._available_ports = available_ports
 
     async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
-        port = Port(self._available_ports).get()
-        address = f"http://localhost:{port}"
-        process = await self.start_browser(workspace_path, port)
-        browser = SubProcessOcrdBrowser(
-            owner, workspace_path, address, str(process.pid)
-        )
-        return browser
+        for port in self._available_ports:
+            address = f"http://localhost:{port}"
+            process = await self.start_browser(workspace_path, port)
+
+            await asyncio.sleep(1)
+            if process.returncode is None:
+                return SubProcessOcrdBrowser(
+                    owner, workspace_path, address, str(process.pid)
+                )
+            else:
+                continue
+
+        raise NoPortsAvailableError()
 
     async def start_browser(
         self, workspace: str, port: int
@@ -82,7 +88,11 @@ class SubProcessOcrdBrowserFactory:
                     ]
                 ),
                 env=environment,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
         except Exception as err:
-            logging.error(f"Failed to launch broadway at {displayport} (real port {port})")
+            logging.error(
+                f"Failed to launch broadway at {displayport} (real port {port})"
+            )
             raise err

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import functools
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal, Type
 
 from pydantic import BaseModel, BaseSettings, validator
 
@@ -19,6 +20,17 @@ from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestorin
 
 from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.sshremote import SSHRemote
+
+BrowserType = Type[SubProcessOcrdBrowser] | Type[DockerOcrdBrowser]
+CreatingFactories: dict[str, Callable[[set[int]], OcrdBrowserFactory]] = {
+    "native": SubProcessOcrdBrowserFactory,
+    "docker": functools.partial(DockerOcrdBrowserFactory, "http://localhost"),
+}
+
+RestoringFactories: dict[str, BrowserType] = {
+    "native": SubProcessOcrdBrowser,
+    "docker": DockerOcrdBrowser,
+}
 
 
 class OcrdControllerSettings(BaseModel):
@@ -44,23 +56,12 @@ class OcrdBrowserSettings(BaseModel):
 
     async def repository(self) -> BrowserProcessRepository:
         await dbmodel.init(self.db_connection_string)
-        restore: BrowserRestoringFactory = (
-            SubProcessOcrdBrowser if self.mode == "native" else DockerOcrdBrowser
-        )
+        restore = RestoringFactories[self.mode]
         return dbmodel.MongoBrowserProcessRepository(restore)
 
     def factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.port_range))
-        if self.mode == "native":
-            return SubProcessOcrdBrowserFactory(port_range_set)
-        else:
-            factory = DockerOcrdBrowserFactory("http://localhost", port_range_set)
-
-            @atexit.register
-            def stop_containers() -> None:
-                asyncio.get_event_loop().run_until_complete(factory.stop_all())
-
-            return factory
+        return CreatingFactories[self.mode](port_range_set)
 
     @validator("port_range", pre=True)
     def validator(cls, value: str | tuple[int, int]) -> tuple[int, int]:

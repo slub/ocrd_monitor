@@ -6,7 +6,7 @@ import os.path as path
 from typing import Any
 
 from ._browser import OcrdBrowser, OcrdBrowserClient
-from ._port import Port
+from ._port import NoPortsAvailableError
 from ._client import HttpBrowserClient
 
 _docker_run = "docker run --rm -d --name {} -v {}:/data -p {}:8085 ocrd-browser:latest"
@@ -19,6 +19,7 @@ async def _run_command(cmd: str, *args: Any) -> asyncio.subprocess.Process:
     return await asyncio.create_subprocess_shell(
         command,
         stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
 
 
@@ -68,33 +69,43 @@ class DockerOcrdBrowserFactory:
 
     async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         abs_workspace = path.abspath(workspace_path)
-        port = Port(self._ports)
 
-        cmd = await _run_command(
-            _docker_run,
-            _container_name(owner, abs_workspace),
-            abs_workspace,
-            port.get(),
-        )
+        container: DockerOcrdBrowser | None = None
+        for port in self._ports:
+            cmd = await _run_command(
+                _docker_run,
+                _container_name(owner, abs_workspace),
+                abs_workspace,
+                port,
+            )
 
+            return_code = await cmd.wait()
+            if return_code != 0:
+                continue
+
+            container = DockerOcrdBrowser(
+                owner,
+                abs_workspace,
+                f"{self._host}:{port}",
+                await self._read_container_id(cmd),
+            )
+            self._containers.append(container)
+            return container
+
+        raise NoPortsAvailableError()
+
+    async def _read_container_id(self, cmd: asyncio.subprocess.Process) -> str:
         stdout = cmd.stdout
         container_id = ""
         if stdout:
             container_id = str(await stdout.read()).strip()
 
-        container = DockerOcrdBrowser(
-            owner,
-            abs_workspace,
-            f"{self._host}:{port.get()}",
-            container_id,
-        )
-
-        self._containers.append(container)
-        return container
+        return container_id
 
     async def stop_all(self) -> None:
         running_ids = [c.process_id() for c in self._containers]
         if running_ids:
-            await _run_command(_docker_kill, " ".join(running_ids))
+            cmd = await _run_command(_docker_kill, " ".join(running_ids))
+            await cmd.wait()
 
         self._containers = []

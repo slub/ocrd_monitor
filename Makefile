@@ -10,6 +10,11 @@ build:
 pull:
 	docker pull $(TAGNAME)
 
+
+build-browse-ocrd-docker:
+	docker build -t ocrd-browser:latest -f docker-browse-ocrd/Dockerfile docker-browse-ocrd
+
+
 define HELP
 cat <<"EOF"
 Targets:

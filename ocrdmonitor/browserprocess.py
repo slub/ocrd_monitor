@@ -23,3 +23,6 @@ class BrowserProcessRepository(Protocol):
         workspace: str | None = None,
     ) -> Collection[OcrdBrowser]:
         ...
+
+    async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
+        ...

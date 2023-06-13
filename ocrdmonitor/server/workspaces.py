@@ -75,14 +75,14 @@ def create_workspaces(
         session_id: str = Cookie(),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
-        browsers = list(
-            await repository.find(
-                owner=session_id, workspace=str(WORKSPACE_DIR / workspace)
-            )
+        browser = await repository.first(
+            owner=session_id, workspace=str(WORKSPACE_DIR / workspace)
         )
 
+        if not browser:
+            return Response(status_code=404)
+
         try:
-            browser = browsers.pop()
             await proxy.forward(browser, str(workspace))
             return Response(status_code=200)
         except (ConnectionError, IndexError):
@@ -105,14 +105,18 @@ def create_workspaces(
             if requested_path.startswith(b.workspace())
         ]
 
-        browser = browsers.pop()
         try:
+            browser = browsers.pop()
             return await proxy.forward(browser, str(workspace))
         except ConnectionError:
             await stop_browser(repository, browser)
             return templates.TemplateResponse(
                 "view_workspace_failed.html.j2",
                 {"request": request, "workspace": workspace},
+            )
+        except IndexError:
+            return Response(
+                content=f"No browser found for {workspace}", status_code=404
             )
 
     @router.websocket("/view/{workspace:path}/socket", name="workspaces.view.socket")
@@ -122,16 +126,13 @@ def create_workspaces(
         session_id: str = Cookie(),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> None:
-        browsers = list(
-            await repository.find(
-                owner=session_id, workspace=str(WORKSPACE_DIR / workspace)
-            )
+        browser = await repository.first(
+            owner=session_id, workspace=str(WORKSPACE_DIR / workspace)
         )
 
-        if not browsers:
+        if browser is None:
             await websocket.close(reason="No browser found")
 
-        browser = browsers.pop()
         await websocket.accept(subprotocol="broadway")
         await communicate_with_browser_until_closed(repository, websocket, browser)
 

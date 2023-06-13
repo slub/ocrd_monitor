@@ -11,7 +11,6 @@ from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserRestoringFactory
 
 
-
 class BrowserProcess(Document):
     address: str
     owner: str
@@ -84,6 +83,19 @@ class MongoBrowserProcessRepository:
             ]
             if results
             else []
+        )
+
+    async def first(self, owner: str, workspace: str) -> OcrdBrowser | None:
+        result = await BrowserProcess.find_one(
+            BrowserProcess.owner == owner,
+            BrowserProcess.workspace == workspace,
+        )
+
+        return self._restoring_factory(
+            result.owner,
+            result.workspace,
+            result.address,
+            result.process_id,
         )
 
     async def clean(self) -> None:

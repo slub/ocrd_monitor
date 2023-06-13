@@ -66,3 +66,7 @@ class InMemoryBrowserProcessRepository:
             for browser in self._processes
             if match(browser)
         ]
+
+    async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
+        results = await self.find(owner=owner, workspace=workspace)
+        return next(iter(results), None)

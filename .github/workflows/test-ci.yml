@@ -50,6 +50,9 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: Build browse-ocrd Docker image
+        run: make build-browse-ocrd-docker
+
       - name: Install dependencies using pip
         run: pip install -e ".[dev]"
 

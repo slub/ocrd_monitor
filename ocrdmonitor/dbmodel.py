@@ -91,6 +91,9 @@ class MongoBrowserProcessRepository:
             BrowserProcess.workspace == workspace,
         )
 
+        if result is None:
+            return None
+
         return self._restoring_factory(
             result.owner,
             result.workspace,

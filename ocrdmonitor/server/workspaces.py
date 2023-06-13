@@ -132,6 +132,7 @@ def create_workspaces(
 
         if browser is None:
             await websocket.close(reason="No browser found")
+            return
 
         await websocket.accept(subprotocol="broadway")
         await communicate_with_browser_until_closed(repository, websocket, browser)

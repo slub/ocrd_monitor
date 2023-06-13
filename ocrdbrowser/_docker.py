@@ -61,6 +61,13 @@ def _container_name(owner: str, workspace: str) -> str:
     return f"ocrd-browser-{owner}-{workspace}"
 
 
+async def log_from_stream(stream: asyncio.StreamReader | None) -> None:
+    if not stream:
+        return
+
+    logging.info(await stream.read())
+
+
 class DockerOcrdBrowserFactory:
     def __init__(self, host: str, available_ports: set[int]) -> None:
         self._host = host
@@ -79,7 +86,7 @@ class DockerOcrdBrowserFactory:
                 port,
             )
 
-            return_code = await cmd.wait()
+            return_code = await self.wait_for(cmd)
             if return_code != 0:
                 continue
 
@@ -93,6 +100,12 @@ class DockerOcrdBrowserFactory:
             return container
 
         raise NoPortsAvailableError()
+
+    async def wait_for(self, cmd: asyncio.subprocess.Process) -> int:
+        return_code = await cmd.wait()
+        await log_from_stream(cmd.stderr)
+
+        return return_code
 
     async def _read_container_id(self, cmd: asyncio.subprocess.Process) -> str:
         stdout = cmd.stdout

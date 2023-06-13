@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import shutil
 from typing import AsyncIterator, Callable
 
 import pytest
@@ -11,23 +12,16 @@ from ocrdbrowser import (
     OcrdBrowserFactory,
     SubProcessOcrdBrowserFactory,
 )
-from tests.ocrdmonitor.server.decorators import compose
-
-# NOTE: We are using different ports in each test case, because I think that tests are executed
-# faster than docker is able to free the ports again
+from tests.decorators import compose
 
 
 def browse_ocrd_not_available() -> bool:
-    import shutil
-
     browse_ocrd = shutil.which("browse-ocrd")
     broadway = shutil.which("broadwayd")
     return not all((browse_ocrd, broadway))
 
 
 def docker_not_available() -> bool:
-    import shutil
-
     return not bool(shutil.which("docker"))
 
 
@@ -68,26 +62,43 @@ async def stop_browsers() -> AsyncIterator[None]:
     yield
 
     cmd = await asyncio.create_subprocess_shell(
-        "docker stop $(docker ps | grep ocrd-browser | awk '{ print $1 }')"
+        "docker stop $(docker ps | grep ocrd-browser | awk '{ print $1 }')",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
     await cmd.wait()
 
 
+CreateBrowserFactory = Callable[[set[int]], OcrdBrowserFactory]
+
+
+@browser_factory_test
+async def test__factory__launches_new_browser_instance(
+    create_browser_factory: CreateBrowserFactory,
+) -> None:
+    sut = create_browser_factory({9000})
+    browser = await sut("the-owner", "tests/workspaces/a_workspace")
+
+    client = browser.client()
+    response = await client.get("/")
+    assert response is not None
+
+
 @browser_factory_test
 async def test__launching_on_an_allocated_port__raises_unavailable_port_error(
-    create_browser_factory: Callable[[set[int]], OcrdBrowserFactory]
+    create_browser_factory: CreateBrowserFactory,
 ) -> None:
     _factory = create_browser_factory({9000})
-    first = await _factory("first-owner", "tests/workspaces/a_workspace")
+    await _factory("first-owner", "tests/workspaces/a_workspace")
 
     sut = create_browser_factory({9000})
     with pytest.raises(NoPortsAvailableError):
-        second = await sut("second-owner", "tests/workspaces/a_workspace")
+        await sut("second-owner", "tests/workspaces/a_workspace")
 
 
 @browser_factory_test
 async def test__one_port_allocated__launches_on_next_available(
-    create_browser_factory: Callable[[set[int]], OcrdBrowserFactory]
+    create_browser_factory: CreateBrowserFactory,
 ) -> None:
     _factory = create_browser_factory({9000})
     await _factory("other-owner", "tests/workspaces/a_workspace")

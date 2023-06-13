@@ -1,22 +1,10 @@
-from typing import Any, Callable
 import pytest
+from tests.decorators import compose
 
 from tests.ocrdmonitor.server.fixtures.repository import (
     inmemory_repository,
     mongodb_repository,
 )
-
-Decorator = Callable[[Callable[..., Any]], Callable[..., Any]]
-
-
-def compose(*decorators: Decorator) -> Decorator:
-    def decorated(fn: Callable[..., Any]) -> Callable[..., Any]:
-        for deco in reversed(decorators):
-            fn = deco(fn)
-
-        return fn
-
-    return decorated
 
 
 use_custom_repository = compose(

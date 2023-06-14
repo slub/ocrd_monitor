@@ -70,3 +70,6 @@ class InMemoryBrowserProcessRepository:
     async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
         results = await self.find(owner=owner, workspace=workspace)
         return next(iter(results), None)
+
+    async def count(self) -> int:
+        return len(self._processes)

@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from ocrdmonitor.ocrdcontroller import OcrdController
 from ocrdmonitor.server.index import create_index
 from ocrdmonitor.server.jobs import create_jobs
+from ocrdmonitor.server.lifespan import lifespan
 from ocrdmonitor.server.logs import create_logs
 from ocrdmonitor.server.logview import create_logview
 from ocrdmonitor.server.settings import Settings
@@ -21,7 +22,7 @@ TEMPLATE_DIR = PKG_DIR / "templates"
 
 
 def create_app(settings: Settings) -> FastAPI:
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan(settings.ocrd_browser))
     templates = Jinja2Templates(TEMPLATE_DIR)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

@@ -75,7 +75,7 @@ class HttpBrowserClient:
         except Exception as ex:
             logging.error(f"Tried to connect to {self.address}")
             logging.error(f"Requested resource {resource}")
-            raise ex
+            raise ConnectionError from ex
 
     def open_channel(self) -> AsyncContextManager[Channel]:
         return WebSocketChannel(self.address + "/socket")

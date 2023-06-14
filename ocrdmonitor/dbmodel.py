@@ -1,8 +1,8 @@
 import asyncio
-from typing import Any, Collection, Mapping
+import urllib
+from typing import Any, Collection, Mapping, Protocol
 
 import pymongo
-import urllib
 from beanie import Document, init_beanie
 from beanie.odm.queries.find import FindMany
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -41,12 +41,17 @@ class MongoBrowserProcessRepository:
         ).insert()
 
     async def delete(self, browser: OcrdBrowser) -> None:
-        await BrowserProcess.find_one(
+        result = await BrowserProcess.find_one(
             BrowserProcess.owner == browser.owner(),
             BrowserProcess.workspace == browser.workspace(),
             BrowserProcess.address == browser.address(),
             BrowserProcess.process_id == browser.process_id(),
-        ).delete()
+        )
+
+        if not result:
+            return
+
+        await result.delete()
 
     async def find(
         self,
@@ -71,19 +76,18 @@ class MongoBrowserProcessRepository:
         if workspace is not None:
             results = find(results, BrowserProcess.workspace == workspace)
 
-        return (
-            [
-                self._restoring_factory(
-                    browser.owner,
-                    browser.workspace,
-                    browser.address,
-                    browser.process_id,
-                )
-                for browser in await results.to_list()
-            ]
-            if results
-            else []
-        )
+        if results is None:
+            results = BrowserProcess.find_all()
+
+        return [
+            self._restoring_factory(
+                browser.owner,
+                browser.workspace,
+                browser.address,
+                browser.process_id,
+            )
+            for browser in await results.to_list()
+        ]
 
     async def first(self, owner: str, workspace: str) -> OcrdBrowser | None:
         result = await BrowserProcess.find_one(
@@ -101,19 +105,51 @@ class MongoBrowserProcessRepository:
             result.process_id,
         )
 
+    async def count(self) -> int:
+        return await BrowserProcess.count()
+
     async def clean(self) -> None:
         await BrowserProcess.delete_all()
 
 
-async def init(connection_str: str) -> None:
+def rebuild_connection_string(connection_str: str) -> str:
     connection_str = connection_str.removeprefix("mongodb://")
     credentials, host = connection_str.split("@")
     user, password = credentials.split(":")
     password = urllib.parse.quote(password)
-    connection_str = f"mongodb://{user}:{password}@{host}"
-    client: AsyncIOMotorClient = AsyncIOMotorClient(connection_str)
-    client.get_io_loop = asyncio.get_event_loop
-    await init_beanie(
-        database=client.browsers,
-        document_models=[BrowserProcess],  # type: ignore
-    )
+    return f"mongodb://{user}:{password}@{host}"
+
+
+class InitDatabase(Protocol):
+    async def __call__(
+        self, connection_str: str, force_initialize: bool = False
+    ) -> None:
+        ...
+
+
+def __beanie_initializer() -> InitDatabase:
+    """
+    We use this as a workaround to prevent beanie from being initialized
+    multiple times when requesting the repository from OcrdBrowserSettings
+    unless stated explicitly (e.g. for testing purposes)
+    """
+    __initialized = False
+
+    async def init(connection_str: str, force_initialize: bool = False) -> None:
+        nonlocal __initialized
+        if __initialized and not force_initialize:
+            return
+
+        __initialized = True
+        connection_str = rebuild_connection_string(connection_str)
+        client: AsyncIOMotorClient = AsyncIOMotorClient(connection_str)
+        client.get_io_loop = asyncio.get_event_loop
+        await init_beanie(
+            database=client.browsers,
+            document_models=[BrowserProcess],  # type: ignore
+        )
+
+    return init
+
+
+init = __beanie_initializer()

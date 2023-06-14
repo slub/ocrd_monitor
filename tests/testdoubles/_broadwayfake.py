@@ -8,7 +8,7 @@ from ._backgroundprocess import BackgroundProcess
 
 
 FAKE_HOST_IP = "127.0.0.1"
-FAKE_HOST_PORT = 7000
+FAKE_HOST_PORT = 8000
 FAKE_HOST_ADDRESS = f"{FAKE_HOST_IP}:{FAKE_HOST_PORT}"
 
 

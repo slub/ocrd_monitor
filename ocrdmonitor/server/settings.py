@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-import atexit
 import functools
 from pathlib import Path
 from typing import Callable, Literal, Type
@@ -16,7 +14,7 @@ from ocrdbrowser import (
     SubProcessOcrdBrowser,
 )
 from ocrdmonitor import dbmodel
-from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
+from ocrdmonitor.browserprocess import BrowserProcessRepository
 
 from ocrdmonitor.ocrdcontroller import RemoteServer
 from ocrdmonitor.sshremote import SSHRemote
@@ -55,7 +53,9 @@ class OcrdBrowserSettings(BaseModel):
     db_connection_string: str
 
     async def repository(self) -> BrowserProcessRepository:
+        # if not self._repository_initialized:
         await dbmodel.init(self.db_connection_string)
+
         restore = RestoringFactories[self.mode]
         return dbmodel.MongoBrowserProcessRepository(restore)
 

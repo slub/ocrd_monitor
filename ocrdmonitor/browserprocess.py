@@ -26,3 +26,6 @@ class BrowserProcessRepository(Protocol):
 
     async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
         ...
+
+    async def count(self) -> int:
+        ...

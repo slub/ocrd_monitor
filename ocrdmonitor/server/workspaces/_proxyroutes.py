@@ -1,6 +1,7 @@
 from __future__ import annotations
+import asyncio
+import logging
 
-import functools
 from pathlib import Path
 from typing import Callable
 
@@ -17,8 +18,10 @@ from ._browsercommunication import CloseCallback, communicate_until_closed, forw
 async def stop_and_remove_browser(
     repository: BrowserProcessRepository, browser: OcrdBrowser
 ) -> None:
-    await browser.stop()
-    await repository.delete(browser)
+    async with asyncio.TaskGroup() as group:
+        group.create_task(browser.stop())
+        group.create_task(repository.delete(browser))
+        logging.info(f"Stopping browser {browser.workspace()}")
 
 
 async def first_owned_browser_in_workspace(
@@ -33,8 +36,10 @@ async def first_owned_browser_in_workspace(
     return next(browsers_in_workspace, None)
 
 
-def browser_closed_callback(reposository: BrowserProcessRepository) -> CloseCallback:
-    return functools.partial(stop_and_remove_browser, reposository)
+def browser_closed_callback(repository: BrowserProcessRepository) -> CloseCallback:
+    async def _callback(browser: OcrdBrowser) -> None:
+        await stop_and_remove_browser(repository, browser)
+    return _callback
 
 
 def register_proxyroutes(

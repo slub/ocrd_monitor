@@ -35,7 +35,10 @@ class SubProcessOcrdBrowser:
         return self._owner
 
     async def stop(self) -> None:
-        os.kill(int(self._process_id), signal.SIGKILL)
+        try:
+            os.kill(int(self._process_id), signal.SIGKILL)
+        except ProcessLookupError:
+            logging.warning(f"Could not find process with ID {self._process_id}")
 
     def client(self) -> OcrdBrowserClient:
         return HttpBrowserClient(self.address())

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from difflib import SequenceMatcher
 from typing import Awaitable, Callable
 
@@ -33,8 +34,13 @@ async def communicate_until_closed(
                 await _tunnel(channel, websocket)
         except ChannelClosed:
             await close_callback(browser)
-        except Exception:
-            pass
+        except Exception as err:
+            logging.error(
+                f"""
+                An exception occurred during communication with the browser {repr(browser)}. 
+                The exception was {repr(err)}
+                """
+            )
 
 
 async def _tunnel(

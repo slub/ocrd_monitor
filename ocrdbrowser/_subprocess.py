@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 import os
 import signal
 from shutil import which
+from typing import cast
 
 from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._client import HttpBrowserClient
-from ._port import NoPortsAvailableError
+from ._port import PortBindingError, PortBindingResult, try_bind
 
 BROADWAY_BASE_PORT = 8080
 
@@ -44,58 +46,69 @@ class SubProcessOcrdBrowser:
         return HttpBrowserClient(self.address())
 
 
+class ProcessLaunchFailedError(RuntimeError):
+    pass
+
+
 class SubProcessOcrdBrowserFactory:
     def __init__(self, available_ports: set[int]) -> None:
         self._available_ports = available_ports
 
     async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
-        for port in self._available_ports:
-            address = f"http://localhost:{port}"
-            process = await self.start_browser(workspace_path, port)
+        port_binding = functools.partial(start_browser, workspace_path)
+        process, port = await try_bind(
+            port_binding, "http://localhost", self._available_ports
+        )
 
-            await asyncio.sleep(1)
-            if process.returncode is None:
-                return SubProcessOcrdBrowser(
-                    owner, workspace_path, address, str(process.pid)
-                )
-            else:
-                continue
+        address = f"http://localhost:{port}"
+        return SubProcessOcrdBrowser(owner, workspace_path, address, str(process.pid))
 
-        raise NoPortsAvailableError()
+        # stderr = cast(asyncio.StreamReader, process.stderr)
+        # logging.error((await stderr.read()).splitlines())
+        # raise ProcessLaunchFailedError()
 
-    async def start_browser(
-        self, workspace: str, port: int
-    ) -> asyncio.subprocess.Process:
-        browse_ocrd = which("browse-ocrd")
-        if not browse_ocrd:
-            raise FileNotFoundError("Could not find browse-ocrd executable")
 
-        # broadwayd (which uses WebSockets) only allows a single client at a time
-        # (disconnecting concurrent connections), hence we must start a new daemon
-        # for each new browser session
-        # broadwayd starts counting virtual X displays from port 8080 as :0
-        displayport = str(port - BROADWAY_BASE_PORT)
-        environment = dict(os.environ)
-        environment["GDK_BACKEND"] = "broadway"
-        environment["BROADWAY_DISPLAY"] = ":" + displayport
+async def start_browser(
+    workspace: str, host: str, port: int
+) -> PortBindingResult[asyncio.subprocess.Process]:
+    browse_ocrd = which("browse-ocrd")
+    if not browse_ocrd:
+        raise FileNotFoundError("Could not find browse-ocrd executable")
+
+    # broadwayd (which uses WebSockets) only allows a single client at a time
+    # (disconnecting concurrent connections), hence we must start a new daemon
+    # for each new browser session
+    # broadwayd starts counting virtual X displays from port 8080 as :0
+    displayport = str(port - BROADWAY_BASE_PORT)
+    environment = dict(os.environ)
+    environment["GDK_BACKEND"] = "broadway"
+    environment["BROADWAY_DISPLAY"] = ":" + displayport
+
+    try:
+        process = await asyncio.create_subprocess_shell(
+            " ".join(
+                [
+                    "broadwayd",
+                    ":" + displayport,
+                    browse_ocrd,
+                    workspace + "/mets.xml",
+                ]
+            ),
+            env=environment,
+            stderr=asyncio.subprocess.PIPE,
+        )
 
         try:
-            return await asyncio.create_subprocess_shell(
-                " ".join(
-                    [
-                        "broadwayd",
-                        ":" + displayport + " &",
-                        browse_ocrd,
-                        workspace + "/mets.xml ;",
-                        "kill $!",
-                    ]
-                ),
-                env=environment,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-        except Exception as err:
-            logging.error(
-                f"Failed to launch broadway at {displayport} (real port {port})"
-            )
-            raise err
+            stderr = cast(asyncio.StreamReader, process.stderr)
+            line = await asyncio.wait_for(stderr.readline(), 1)
+            if b"Address already in use" in line:
+                return PortBindingError()
+        except TimeoutError:
+            # If we don't get a timeout, the process didn't crash to the best of our knowledge
+            pass
+
+        return process
+    except Exception as err:
+        logging.error(f"Failed to launch broadway at {displayport} (real port {port})")
+        logging.error(repr(err))
+        return PortBindingError()

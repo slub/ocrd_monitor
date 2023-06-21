@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import shutil
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator, Callable, Literal, NamedTuple
 
 import pytest
 import pytest_asyncio
@@ -57,16 +57,36 @@ browser_factory_test = compose(
 )
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def stop_browsers() -> AsyncIterator[None]:
-    yield
+class DockerProcessKiller(NamedTuple):
+    kill: str = "docker stop"
+    ps: str = "docker ps"
 
+
+class NativeProcessKiller(NamedTuple):
+    kill: str = "kill"
+    ps: str = "ps"
+
+
+async def kill_processes(
+    killer: NativeProcessKiller | DockerProcessKiller, name_filter: str
+) -> None:
+    kill_cmd, ps_cmd = killer
     cmd = await asyncio.create_subprocess_shell(
-        "docker stop $(docker ps | grep ocrd-browser | awk '{ print $1 }')",
+        f"{kill_cmd} $({ps_cmd} | grep {name_filter} | awk '{{ print $1 }}')",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     await cmd.wait()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def stop_browsers() -> AsyncIterator[None]:
+    yield
+
+    async with asyncio.TaskGroup() as group:
+        group.create_task(kill_processes(DockerProcessKiller(), "ocrd-browser"))
+        group.create_task(kill_processes(NativeProcessKiller(), "broadwayd"))
+        group.create_task(kill_processes(NativeProcessKiller(), "browse-ocrd"))
 
 
 CreateBrowserFactory = Callable[[set[int]], OcrdBrowserFactory]

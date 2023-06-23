@@ -1,8 +1,10 @@
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -30,6 +32,19 @@ def create_app(settings: Settings) -> FastAPI:
     async def swallow_exceptions(request: Request, err: Exception) -> Response:
         logging.error(err)
         return RedirectResponse("/")
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception(
+        request: Request, exc: RequestValidationError
+    ) -> Response:
+        logging.error(f"Unprocessable entity on route {request.url}")
+        logging.error("Error details:")
+        logging.error(exc.errors())
+        logging.error(exc.body)
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+        )
 
     app.include_router(create_index(templates))
     app.include_router(

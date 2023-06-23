@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Awaitable, Callable, Generic, Iterable, NamedTuple, TypeVar, Union
 
 
@@ -28,6 +29,7 @@ async def try_bind(
     for port in ports:
         result = await binding(host, port)
         if isinstance(result, PortBindingError):
+            logging.info(f"Port {port} already in use, continuing to next port")
             continue
 
         return BoundPort(result, port)

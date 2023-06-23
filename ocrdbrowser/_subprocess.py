@@ -89,9 +89,10 @@ async def start_browser(
             " ".join(
                 [
                     "broadwayd",
-                    ":" + displayport,
+                    ":" + displayport + " &",
                     browse_ocrd,
-                    workspace + "/mets.xml",
+                    workspace + "/mets.xml" + " ;",
+                    "kill" + " $!",
                 ]
             ),
             env=environment,
@@ -100,11 +101,13 @@ async def start_browser(
 
         try:
             stderr = cast(asyncio.StreamReader, process.stderr)
-            line = await asyncio.wait_for(stderr.readline(), 1)
-            if b"Address already in use" in line:
+            err_output = await asyncio.wait_for(stderr.readline(), 5)
+            if b"Address already in use" in err_output:
                 return PortBindingError()
-        except TimeoutError:
-            # If we don't get a timeout, the process didn't crash to the best of our knowledge
+        except asyncio.TimeoutError:
+            logging.info(
+                f"The process didn't exit within the given timeout. Assuming browser on port {port} launched successfully"
+            )
             pass
 
         return process

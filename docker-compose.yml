@@ -44,7 +44,6 @@ services:
 
   ocrd-database:
     image: "mongo:latest"
-    container_name: ocrd-database
 
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${DB_ROOT_USER:-root}

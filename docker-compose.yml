@@ -2,8 +2,9 @@ version: "3.9"
 services:
 
   ocrd-monitor:
-    depends_on: 
-      - ocrd-database
+    depends_on:
+      ocrd-database:
+        condition: service_started
 
     build:
       context: .
@@ -55,8 +56,9 @@ services:
 
   mongo-express:
     image: mongo-express:latest
-    depends_on: 
-      - ocrd-database
+    depends_on:
+      ocrd-database:
+        condition: service_started
     ports:
       - 8081:8081
     environment:

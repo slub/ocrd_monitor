@@ -4,18 +4,20 @@ from typing import AsyncContextManager, AsyncIterator, Callable
 
 from fastapi import FastAPI
 
-from ocrdbrowser import OcrdBrowser
+from ocrdmonitor import dbmodel
 from ocrdmonitor.browserprocess import BrowserProcessRepository
-from ocrdmonitor.server.settings import OcrdBrowserSettings
+from ocrdmonitor.server.settings import Settings, OcrdBrowserSettings
+from ocrdbrowser import OcrdBrowser
 
 
 Lifespan = Callable[[FastAPI], AsyncContextManager[None]]
 
 
-def lifespan(browser_settings: OcrdBrowserSettings) -> Lifespan:
+def lifespan(settings: Settings) -> Lifespan:
     @asynccontextmanager
     async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
-        await clean_unreachable_browsers(browser_settings)
+        await dbmodel.init(settings.db_connection_string)
+        await clean_unreachable_browsers(settings.ocrd_browser)
         yield
 
     return _lifespan

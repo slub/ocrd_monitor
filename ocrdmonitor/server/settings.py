@@ -16,9 +16,6 @@ from ocrdbrowser import (
 from ocrdmonitor import dbmodel
 from ocrdmonitor.browserprocess import BrowserProcessRepository
 
-from ocrdmonitor.ocrdcontroller import RemoteServer
-from ocrdmonitor.sshremote import SSHRemote
-
 BrowserType = Type[SubProcessOcrdBrowser] | Type[DockerOcrdBrowser]
 CreatingFactories: dict[str, Callable[[set[int]], OcrdBrowserFactory]] = {
     "native": SubProcessOcrdBrowserFactory,
@@ -32,14 +29,10 @@ RestoringFactories: dict[str, BrowserType] = {
 
 
 class OcrdControllerSettings(BaseModel):
-    job_dir: Path
     host: str
     user: str
     port: int = 22
     keyfile: Path = Path.home() / ".ssh" / "id_rsa"
-
-    def controller_remote(self) -> RemoteServer:
-        return SSHRemote(self)
 
 
 class OcrdLogViewSettings(BaseModel):
@@ -50,12 +43,8 @@ class OcrdBrowserSettings(BaseModel):
     workspace_dir: Path
     mode: Literal["native", "docker"] = "native"
     port_range: tuple[int, int]
-    db_connection_string: str
 
     async def repository(self) -> BrowserProcessRepository:
-        # if not self._repository_initialized:
-        await dbmodel.init(self.db_connection_string)
-
         restore = RestoringFactories[self.mode]
         return dbmodel.MongoBrowserProcessRepository(restore)
 
@@ -84,6 +73,8 @@ class OcrdBrowserSettings(BaseModel):
 
 
 class Settings(BaseSettings):
+    db_connection_string: str
+
     ocrd_browser: OcrdBrowserSettings
     ocrd_controller: OcrdControllerSettings
     ocrd_logview: OcrdLogViewSettings

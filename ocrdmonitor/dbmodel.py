@@ -1,5 +1,8 @@
+from datetime import datetime
 import asyncio
 import urllib
+from functools import cached_property
+from pathlib import Path
 from typing import Any, Collection, Mapping, Protocol
 
 import pymongo
@@ -10,6 +13,44 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserRestoringFactory
 
+
+class OcrdJob(Document):
+    pid: int | None = None
+    return_code: int | None = None
+    time_created: datetime | None = datetime.now()
+    time_terminated: datetime | None = None
+    process_id: str
+    task_id: str
+    process_dir: Path
+    workdir: Path
+    remotedir: str
+    workflow_file: Path
+    controller_address: str
+
+    class Settings:
+        indexes = [
+            pymongo.IndexModel(
+                [
+                    ("process_dir", pymongo.ASCENDING),
+                    ("time_created", pymongo.DESCENDING),
+                ]
+            )
+        ]
+
+    #@cached_property
+    @property
+    def is_running(self) -> bool:
+        return self.pid is not None
+
+    #@cached_property
+    @property
+    def is_completed(self) -> bool:
+        return self.return_code is not None
+
+    #@cached_property
+    @property
+    def workflow(self) -> str:
+        return Path(self.workflow_file).name
 
 class BrowserProcess(Document):
     address: str
@@ -145,8 +186,8 @@ def __beanie_initializer() -> InitDatabase:
         client: AsyncIOMotorClient = AsyncIOMotorClient(connection_str)
         client.get_io_loop = asyncio.get_event_loop
         await init_beanie(
-            database=client.browsers,
-            document_models=[BrowserProcess],  # type: ignore
+            database=client.ocrd,
+            document_models=[BrowserProcess, OcrdJob],  # type: ignore
         )
 
     return init

@@ -7,6 +7,7 @@ from typing import Iterable
 from fastapi import APIRouter, Request, Response
 from fastapi.templating import Jinja2Templates
 
+from ocrdmonitor.server.settings import OcrdControllerSettings
 from ocrdmonitor.ocrdcontroller import OcrdController
 from ocrdmonitor.ocrdjob import OcrdJob
 from ocrdmonitor.processstatus import ProcessStatus
@@ -39,12 +40,13 @@ def wrap_in_running_job_type(
     return running_jobs
 
 
-def create_jobs(templates: Jinja2Templates, controller: OcrdController) -> APIRouter:
+def create_jobs(templates: Jinja2Templates, controller_settings: OcrdControllerSettings) -> APIRouter:
     router = APIRouter(prefix="/jobs")
+    controller = OcrdController(controller_settings)
 
     @router.get("/", name="jobs")
     async def jobs(request: Request) -> Response:
-        jobs = controller.get_jobs()
+        jobs = await controller.get_jobs()
         running, completed = split_into_running_and_completed(jobs)
 
         job_status = [await controller.status_for(job) for job in running]

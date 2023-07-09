@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 
 from ocrdmonitor.server.settings import OcrdControllerSettings
 from ocrdmonitor.ocrdcontroller import OcrdController
-from ocrdmonitor.ocrdjob import OcrdJob
+from ocrdmonitor.dbmodel import OcrdJob
 from ocrdmonitor.processstatus import ProcessStatus
 
 

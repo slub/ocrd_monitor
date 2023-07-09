@@ -11,8 +11,7 @@
 {% block content %}
 <script>
     function killjob(pid) {
-    /* todo: log into the Manager and kill this process ... */
-        window.alert("Not implemented yet")
+        console.log(fetch(`http://ocrd-manager:4004/cancel_job/${pid}`));
     }
 </script>
 <h2 class="title">Active Jobs</h2>

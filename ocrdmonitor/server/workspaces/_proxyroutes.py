@@ -39,6 +39,7 @@ async def first_owned_browser_in_workspace(
 def browser_closed_callback(repository: BrowserProcessRepository) -> CloseCallback:
     async def _callback(browser: OcrdBrowser) -> None:
         await stop_and_remove_browser(repository, browser)
+
     return _callback
 
 
@@ -74,16 +75,21 @@ def register_proxyroutes(
     async def workspace_reverse_proxy(
         request: Request,
         workspace: Path,
-        session_id: str = Cookie(),
+        session_id: str = Cookie(default=None),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
+        # The session_id cookie is not always properly injected for some reason
+        # Therefore we try to get it from the request if it is None
+        session_id = session_id or request.cookies.get("session_id")
+
         browser = await first_owned_browser_in_workspace(
             session_id, full_workspace(workspace), repository
         )
 
         if not browser:
             return Response(
-                content=f"No browser found for {workspace}", status_code=404
+                content=f"No browser found for {workspace} and session ID {session_id}",
+                status_code=404,
             )
         try:
             return await forward(browser, str(workspace))

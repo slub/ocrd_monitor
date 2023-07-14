@@ -6,13 +6,26 @@ import logging
 import os
 import signal
 from shutil import which
-from typing import cast
+from typing import NamedTuple, Self, Type, cast
 
 from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._client import HttpBrowserClient
 from ._port import PortBindingError, PortBindingResult, try_bind
 
 BROADWAY_BASE_PORT = 8080
+
+
+class BroadwayBrowserId(NamedTuple):
+    broadway_pid: int
+    browser_pid: int
+
+    @classmethod
+    def from_str(cls: Type[Self], id_str: str) -> Self:
+        ids = map(int, id_str.split("-"))
+        return BroadwayBrowserId(*ids)
+
+    def __str__(self) -> str:
+        return f"{self.broadway_pid}-{self.browser_pid}"
 
 
 class SubProcessOcrdBrowser:
@@ -22,10 +35,10 @@ class SubProcessOcrdBrowser:
         self._owner = owner
         self._workspace = workspace
         self._address = address
-        self._process_id = process_id
+        self._process_id = BroadwayBrowserId.from_str(process_id)
 
     def process_id(self) -> str:
-        return self._process_id
+        return str(self._process_id)
 
     def address(self) -> str:
         return self._address
@@ -37,10 +50,15 @@ class SubProcessOcrdBrowser:
         return self._owner
 
     async def stop(self) -> None:
+        self._try_kill(self._process_id.broadway_pid)
+        self._try_kill(self._process_id.browser_pid)
+
+    @staticmethod
+    def _try_kill(pid: int) -> None:
         try:
-            os.kill(int(self._process_id), signal.SIGKILL)
+            os.kill(pid, signal.SIGKILL)
         except ProcessLookupError:
-            logging.warning(f"Could not find process with ID {self._process_id}")
+            logging.warning(f"Could not find process with ID {pid}")
 
     def client(self) -> OcrdBrowserClient:
         return HttpBrowserClient(self.address())
@@ -56,62 +74,81 @@ class SubProcessOcrdBrowserFactory:
 
     async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         port_binding = functools.partial(start_browser, workspace_path)
-        process, port = await try_bind(
+        pid, port = await try_bind(
             port_binding, "http://localhost", self._available_ports
         )
 
         address = f"http://localhost:{port}"
-        return SubProcessOcrdBrowser(owner, workspace_path, address, str(process.pid))
-
-        # stderr = cast(asyncio.StreamReader, process.stderr)
-        # logging.error((await stderr.read()).splitlines())
-        # raise ProcessLaunchFailedError()
+        return SubProcessOcrdBrowser(owner, workspace_path, address, str(pid))
 
 
 async def start_browser(
     workspace: str, host: str, port: int
-) -> PortBindingResult[asyncio.subprocess.Process]:
-    browse_ocrd = which("browse-ocrd")
-    if not browse_ocrd:
-        raise FileNotFoundError("Could not find browse-ocrd executable")
+) -> PortBindingResult[BroadwayBrowserId]:
+    find_executables_or_raise()
 
     # broadwayd (which uses WebSockets) only allows a single client at a time
     # (disconnecting concurrent connections), hence we must start a new daemon
     # for each new browser session
     # broadwayd starts counting virtual X displays from port 8080 as :0
     displayport = str(port - BROADWAY_BASE_PORT)
+
+    try:
+        broadway_process = await launch_broadway(displayport)
+
+        if broadway_process is None:
+            return PortBindingError()
+
+        environment = prepare_env(displayport)
+        full_cmd = browser_command(workspace, broadway_process.pid)
+        browser_process = await asyncio.create_subprocess_shell(
+            full_cmd, env=environment
+        )
+
+        return BroadwayBrowserId(broadway_process.pid, browser_process.pid)
+    except Exception as err:
+        logging.error(f"Failed to launch broadway at (real port {port})")
+        logging.error(repr(err))
+        return PortBindingError()
+
+
+def find_executables_or_raise():
+    if not which("broadwayd"):
+        raise FileNotFoundError("Could not find broadwayd executable")
+
+    if not which("browse-ocrd"):
+        raise FileNotFoundError("Could not find browse-ocrd executable")
+
+
+async def launch_broadway(
+    displayport: int,
+) -> asyncio.subprocess.Process | None:
+    broadway_process = await asyncio.create_subprocess_exec(
+        which("broadwayd"), f":{displayport}", stderr=asyncio.subprocess.PIPE
+    )
+
+    try:
+        stderr = cast(asyncio.StreamReader, broadway_process.stderr)
+        err_output = await asyncio.wait_for(stderr.readline(), 5)
+        if b"Address already in use" in err_output:
+            return None
+    except asyncio.TimeoutError:
+        logging.info(
+            "The process didn't exit within the given timeout."
+            + f"Assuming broadway on port {displayport} launched successfully"
+        )
+
+    return broadway_process
+
+
+def prepare_env(displayport: int) -> dict[str, str]:
     environment = dict(os.environ)
     environment["GDK_BACKEND"] = "broadway"
     environment["BROADWAY_DISPLAY"] = ":" + displayport
+    return environment
 
-    try:
-        process = await asyncio.create_subprocess_shell(
-            " ".join(
-                [
-                    "broadwayd",
-                    ":" + displayport + " &",
-                    browse_ocrd,
-                    workspace + "/mets.xml" + " ;",
-                    "kill" + " $!",
-                ]
-            ),
-            env=environment,
-            stderr=asyncio.subprocess.PIPE,
-        )
 
-        try:
-            stderr = cast(asyncio.StreamReader, process.stderr)
-            err_output = await asyncio.wait_for(stderr.readline(), 5)
-            if b"Address already in use" in err_output:
-                return PortBindingError()
-        except asyncio.TimeoutError:
-            logging.info(
-                f"The process didn't exit within the given timeout. Assuming browser on port {port} launched successfully"
-            )
-            pass
-
-        return process
-    except Exception as err:
-        logging.error(f"Failed to launch broadway at {displayport} (real port {port})")
-        logging.error(repr(err))
-        return PortBindingError()
+def browser_command(workspace: str, broadway_pid: int) -> str:
+    mets_path = workspace + "/mets.xml"
+    kill_broadway = f"; kill {broadway_pid}"
+    return " ".join([which("browse-ocrd"), mets_path, kill_broadway])

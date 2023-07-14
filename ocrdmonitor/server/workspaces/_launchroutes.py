@@ -1,8 +1,9 @@
-from typing import Callable
 import uuid
 from pathlib import Path
+from typing import Callable
 
 from fastapi import APIRouter, Depends, Request, Response
+from fastapi.params import Cookie
 from fastapi.templating import Jinja2Templates
 
 from ocrdbrowser import OcrdBrowserFactory
@@ -24,20 +25,21 @@ def register_launchroutes(
 ) -> None:
     @router.get("/open/{workspace:path}", name="workspaces.open")
     def open_workspace(request: Request, workspace: str) -> Response:
-        return templates.TemplateResponse(
+        session_id = request.cookies.setdefault("session_id", str(uuid.uuid4()))
+        response = templates.TemplateResponse(
             "workspace.html.j2",
-            {"request": request, "workspace": workspace},
+            {"request": request, "session_id": session_id, "workspace": workspace},
         )
+        response.set_cookie("session_id", session_id)
+        return response
 
     @router.get("/browse/{workspace:path}", name="workspaces.browse")
     async def browser(
-        request: Request,
         workspace: Path,
+        session_id: str = Cookie(),
         factory: OcrdBrowserFactory = Depends(browser_settings.factory),
         repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
-        session_id = request.cookies.setdefault("session_id", str(uuid.uuid4()))
-
         full_path = full_workspace(workspace)
         existing_browsers = await repository.find(owner=session_id, workspace=full_path)
 

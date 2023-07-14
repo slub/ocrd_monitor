@@ -95,7 +95,7 @@ def interact_with_workspace(app: TestClient, workspace: str) -> Response:
     return response
 
 
-def open_workspace(app: TestClient, workspace: str) -> None:
+def open_workspace(app: TestClient, workspace: str) -> Response:
     _ = app.get(f"/workspaces/open/{workspace}")
     return app.get(f"/workspaces/browse/{workspace}")
 

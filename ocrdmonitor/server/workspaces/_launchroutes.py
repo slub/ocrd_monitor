@@ -2,8 +2,7 @@ import uuid
 from pathlib import Path
 from typing import Callable
 
-from fastapi import APIRouter, Depends, Request, Response
-from fastapi.params import Cookie
+from fastapi import APIRouter, Cookie, Depends, Request, Response
 from fastapi.templating import Jinja2Templates
 
 from ocrdbrowser import OcrdBrowserFactory

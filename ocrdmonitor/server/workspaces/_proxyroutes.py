@@ -43,6 +43,10 @@ def browser_closed_callback(repository: BrowserProcessRepository) -> CloseCallba
     return _callback
 
 
+def get_session_id(request: Request, session_id: str | None) -> str:
+    return session_id or request.cookies["session_id"]
+
+
 def register_proxyroutes(
     router: APIRouter,
     templates: Jinja2Templates,
@@ -80,7 +84,7 @@ def register_proxyroutes(
     ) -> Response:
         # The session_id cookie is not always properly injected for some reason
         # Therefore we try to get it from the request if it is None
-        session_id = session_id or request.cookies.get("session_id")
+        session_id = get_session_id(request, session_id)
 
         browser = await first_owned_browser_in_workspace(
             session_id, full_workspace(workspace), repository

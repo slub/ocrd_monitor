@@ -20,7 +20,7 @@ class BroadwayBrowserId(NamedTuple):
     browser_pid: int
 
     @classmethod
-    def from_str(cls: Type[Self], id_str: str) -> Self:
+    def from_str(cls: Type["BroadwayBrowserId"], id_str: str) -> "BroadwayBrowserId":
         ids = map(int, id_str.split("-"))
         return BroadwayBrowserId(*ids)
 
@@ -112,7 +112,7 @@ async def start_browser(
         return PortBindingError()
 
 
-def find_executables_or_raise():
+def find_executables_or_raise() -> None:
     if not which("broadwayd"):
         raise FileNotFoundError("Could not find broadwayd executable")
 
@@ -121,10 +121,11 @@ def find_executables_or_raise():
 
 
 async def launch_broadway(
-    displayport: int,
+    displayport: str,
 ) -> asyncio.subprocess.Process | None:
+    broadway = cast(str, which("broadwayd"))
     broadway_process = await asyncio.create_subprocess_exec(
-        which("broadwayd"), f":{displayport}", stderr=asyncio.subprocess.PIPE
+        broadway, f":{displayport}", stderr=asyncio.subprocess.PIPE
     )
 
     try:
@@ -141,7 +142,7 @@ async def launch_broadway(
     return broadway_process
 
 
-def prepare_env(displayport: int) -> dict[str, str]:
+def prepare_env(displayport: str) -> dict[str, str]:
     environment = dict(os.environ)
     environment["GDK_BACKEND"] = "broadway"
     environment["BROADWAY_DISPLAY"] = ":" + displayport
@@ -151,4 +152,5 @@ def prepare_env(displayport: int) -> dict[str, str]:
 def browser_command(workspace: str, broadway_pid: int) -> str:
     mets_path = workspace + "/mets.xml"
     kill_broadway = f"; kill {broadway_pid}"
-    return " ".join([which("browse-ocrd"), mets_path, kill_broadway])
+    browse_ocrd = cast(str, which("browse-ocrd"))
+    return " ".join([browse_ocrd, mets_path, kill_broadway])

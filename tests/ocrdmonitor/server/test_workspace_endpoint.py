@@ -4,6 +4,7 @@ from typing import AsyncIterator, cast
 
 import pytest
 import pytest_asyncio
+from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
 from httpx import Response
 
@@ -91,12 +92,12 @@ def interact_with_workspace(app: TestClient, workspace: str) -> Response:
     response = view_workspace(app, workspace)
     with app.websocket_connect(f"/workspaces/view/{workspace}/socket"):
         pass
-
     return response
 
 
 def open_workspace(app: TestClient, workspace: str) -> None:
-    _ = app.get(f"/workspaces/browse/{workspace}")
+    _ = app.get(f"/workspaces/open/{workspace}")
+    return app.get(f"/workspaces/browse/{workspace}")
 
 
 def view_workspace(app: TestClient, workspace: str) -> Response:
@@ -116,7 +117,7 @@ def test__browse_workspace__passes_full_workspace_path_to_ocrdbrowser(
     browser: BrowserTestDouble,
     app: TestClient,
 ) -> None:
-    response = app.get("/workspaces/browse/a_workspace")
+    response = open_workspace(app, "a_workspace")
 
     assert browser.is_running is True
     assert browser.workspace() == str(WORKSPACE_DIR / "a_workspace")
@@ -125,7 +126,7 @@ def test__browse_workspace__passes_full_workspace_path_to_ocrdbrowser(
 
 @pytest.mark.usefixtures("iterating_factory")
 def test__browse_workspace__assigns_and_tracks_session_id(app: TestClient) -> None:
-    response = app.get("/workspaces/browse/a_workspace")
+    response = open_workspace(app, "a_workspace")
     first_session_id = response.cookies.get("session_id")
 
     response = app.get("/workspaces/browse/a_workspace")

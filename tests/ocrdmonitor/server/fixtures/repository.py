@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Iterator
+from typing import AsyncIterator
 from unittest.mock import patch
 
 from testcontainers.mongodb import MongoDbContainer

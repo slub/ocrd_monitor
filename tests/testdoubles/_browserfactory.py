@@ -1,6 +1,6 @@
 import asyncio
 from types import TracebackType
-from typing import Any, AsyncContextManager, Callable, Protocol, Self, Type
+from typing import AsyncContextManager, Callable, Protocol, Self, Type
 
 from ocrdbrowser import OcrdBrowser, OcrdBrowserFactory
 

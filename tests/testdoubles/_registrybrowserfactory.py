@@ -13,7 +13,6 @@ BrowserRegistry = NewType("BrowserRegistry", dict[str, BrowserTestDouble])
 
 
 class RegistryBrowserFactory:
-
     @classmethod
     def iteratingfactory(cls: Type[Self], browser_registry: BrowserRegistry) -> Self:
         return cls(IteratingBrowserTestDoubleFactory(), browser_registry)

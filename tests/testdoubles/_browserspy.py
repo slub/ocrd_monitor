@@ -115,6 +115,7 @@ class BrowserSpy:
             workspace: {self.workspace()}
             owner: {self.owner()}
             running: {self.is_running}
+            process id: {self._process_id}
         """
         )
 
@@ -126,7 +127,7 @@ def browser_with_disconnecting_channel(
     process_id: str = "1234",
 ) -> BrowserSpy:
     spy = BrowserSpy(owner, workspace, address, process_id)
-    spy.configure_client(channel=DisconnectingChannel())
+    spy.configure_client(response=b"Disconnected", channel=DisconnectingChannel())
     return spy
 
 

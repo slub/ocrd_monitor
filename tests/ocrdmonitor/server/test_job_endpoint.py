@@ -14,7 +14,7 @@ from ocrdmonitor.ocrdjob import OcrdJob
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.server.settings import OcrdControllerSettings
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures.app import JOB_DIR
+from tests.ocrdmonitor.server.fixtures.settings import JOB_DIR
 from tests.ocrdmonitor.test_jobs import JOB_TEMPLATE, jobfile_content_for
 
 

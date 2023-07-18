@@ -1,50 +1,12 @@
-from pathlib import Path
-from typing import Iterator
+from typing import AsyncIterator
 
-import pytest
-import uvicorn
+import pytest_asyncio
 from fastapi.testclient import TestClient
 
-from ocrdmonitor.server.app import create_app
-from ocrdmonitor.server.settings import (
-    OcrdBrowserSettings,
-    OcrdControllerSettings,
-    OcrdLogViewSettings,
-    Settings,
-)
-from tests.testdoubles import BackgroundProcess
-
-JOB_DIR = Path(__file__).parent / "ocrd.jobs"
-WORKSPACE_DIR = Path("tests") / "workspaces"
+from tests.ocrdmonitor.server.fixtures.environment import Fixture
 
 
-def create_settings() -> Settings:
-    return Settings(
-        ocrd_browser=OcrdBrowserSettings(
-            workspace_dir=WORKSPACE_DIR,
-            port_range=(9000, 9100),
-            db_connection_string="",
-        ),
-        ocrd_controller=OcrdControllerSettings(
-            job_dir=JOB_DIR,
-            host="",
-            user="",
-        ),
-        ocrd_logview=OcrdLogViewSettings(port=8022),
-    )
-
-
-@pytest.fixture
-def app() -> TestClient:
-    return TestClient(create_app(create_settings()))
-
-
-def _launch_app() -> None:
-    app = create_app(create_settings())
-    uvicorn.run(app, port=3000)
-
-
-@pytest.fixture
-def launch_monitor() -> Iterator[None]:
-    with BackgroundProcess(_launch_app):
-        yield
+@pytest_asyncio.fixture
+async def app() -> AsyncIterator[TestClient]:
+    async with Fixture() as env:
+        yield env.app

@@ -11,15 +11,14 @@ from typing import (
 
 from fastapi.testclient import TestClient
 
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
 from ocrdmonitor.server.app import create_app
-from tests.ocrdmonitor.server.fixtures.app import create_settings
 from tests.ocrdmonitor.server.fixtures.factory import patch_factory
 from tests.ocrdmonitor.server.fixtures.repository import (
-    RepositoryInitializer,
     inmemory_repository,
     patch_repository,
 )
+from tests.ocrdmonitor.server.fixtures.settings import create_settings
 from tests.testdoubles import (
     BrowserRegistry,
     BrowserSpy,
@@ -37,6 +36,10 @@ class Environment:
 
 
 BrowserConstructor = Callable[[], BrowserTestDouble]
+RepositoryInitializer = Callable[
+    [BrowserRestoringFactory],
+    AsyncContextManager[BrowserProcessRepository],
+]
 
 
 class Fixture:

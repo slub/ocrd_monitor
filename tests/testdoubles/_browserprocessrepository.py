@@ -58,6 +58,7 @@ class InMemoryBrowserProcessRepository:
 
             return matches
 
+        print(self._processes)
         return [
             self.restoring_factory(
                 process_id=browser.process_id,

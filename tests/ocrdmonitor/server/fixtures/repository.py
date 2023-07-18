@@ -16,7 +16,6 @@ from tests.testdoubles import (
 )
 from tests.testdoubles._browserfactory import SingletonRestoringBrowserFactory
 
-
 RepositoryInitializer = Callable[
     [BrowserRestoringFactory],
     AsyncContextManager[BrowserProcessRepository],

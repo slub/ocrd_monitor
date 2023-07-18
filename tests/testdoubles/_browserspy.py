@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from textwrap import dedent
 from typing import AsyncGenerator, Callable, Type
 
-from ocrdbrowser import Channel, OcrdBrowserClient
+from ocrdbrowser import Channel, ChannelClosed, OcrdBrowserClient
 
 Browser_Heading = "OCRD BROWSER"
 
@@ -24,6 +24,14 @@ class ChannelDummy:
 
     async def receive_bytes(self) -> bytes:
         return bytes()
+
+
+class DisconnectingChannel:
+    async def send_bytes(self, data: bytes) -> None:
+        raise ChannelClosed()
+
+    async def receive_bytes(self) -> bytes:
+        raise ChannelClosed()
 
 
 class BrowserClientStub:
@@ -109,3 +117,25 @@ class BrowserSpy:
             running: {self.is_running}
         """
         )
+
+
+def browser_with_disconnecting_channel(
+    owner: str = "",
+    workspace: str = "",
+    address: str = "http://unreachable.example.com",
+    process_id: str = "1234",
+) -> BrowserSpy:
+    spy = BrowserSpy(owner, workspace, address, process_id)
+    spy.configure_client(channel=DisconnectingChannel())
+    return spy
+
+
+def unreachable_browser(
+    owner: str = "",
+    workspace: str = "",
+    address: str = "http://unreachable.example.com",
+    process_id: str = "1234",
+) -> BrowserSpy:
+    spy = BrowserSpy(owner, workspace, address, process_id)
+    spy.configure_client(response=ConnectionError)
+    return spy

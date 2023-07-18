@@ -1,8 +1,9 @@
 import asyncio
 from types import TracebackType
-from typing import Any, Callable, Protocol, Self, Type
+from typing import Any, AsyncContextManager, Callable, Protocol, Self, Type
 
-from ocrdbrowser import OcrdBrowser
+from ocrdbrowser import OcrdBrowser, OcrdBrowserFactory
+
 from ._browserspy import BrowserSpy
 
 
@@ -16,27 +17,6 @@ class BrowserTestDouble(OcrdBrowser, Protocol):
     @property
     def is_running(self) -> bool:
         ...
-
-
-class SingletonBrowserTestDoubleFactory:
-    def __init__(self, browser: BrowserTestDouble | None = None) -> None:
-        self._browser = browser or BrowserSpy()
-
-    async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
-        self._browser.set_owner_and_workspace(owner, workspace_path)
-        await self._browser.start()
-        return self._browser
-
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: Type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self._browser.stop()
 
 
 class IteratingBrowserTestDoubleFactory:
@@ -74,9 +54,10 @@ class IteratingBrowserTestDoubleFactory:
                 group.create_task(browser.stop())
 
 
-BrowserTestDoubleFactory = (
-    SingletonBrowserTestDoubleFactory | IteratingBrowserTestDoubleFactory
-)
+class BrowserTestDoubleFactory(
+    OcrdBrowserFactory, AsyncContextManager[OcrdBrowserFactory], Protocol
+):
+    pass
 
 
 class SingletonRestoringBrowserFactory:

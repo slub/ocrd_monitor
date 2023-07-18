@@ -4,20 +4,16 @@ from typing import AsyncIterator, cast
 
 import pytest
 import pytest_asyncio
-from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from ocrdbrowser import ChannelClosed
-from ocrdmonitor.browserprocess import BrowserProcessRepository
-from ocrdmonitor.server.app import create_app
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.decorators import use_custom_repository
-from tests.ocrdmonitor.server.fixtures.app import WORKSPACE_DIR, create_settings
+from tests.ocrdmonitor.server.fixtures.app import WORKSPACE_DIR
+from tests.ocrdmonitor.server.fixtures.environment import Environment, Fixture
 from tests.ocrdmonitor.server.fixtures.factory import patch_factory
 from tests.ocrdmonitor.server.fixtures.repository import (
     RepositoryInitializer,
-    patch_repository,
 )
 from tests.testdoubles import (
     Browser_Heading,
@@ -26,17 +22,9 @@ from tests.testdoubles import (
     BrowserTestDouble,
     BrowserTestDoubleFactory,
     IteratingBrowserTestDoubleFactory,
-    SingletonBrowserTestDoubleFactory,
+    browser_with_disconnecting_channel,
+    unreachable_browser,
 )
-from tests.testdoubles._browserfactory import SingletonRestoringBrowserFactory
-
-
-class DisconnectingChannel:
-    async def send_bytes(self, data: bytes) -> None:
-        raise ChannelClosed()
-
-    async def receive_bytes(self) -> bytes:
-        raise ChannelClosed()
 
 
 @pytest_asyncio.fixture(
@@ -49,13 +37,6 @@ async def iterating_factory(
         IteratingBrowserTestDoubleFactory(default_browser=request.param)
     ) as factory:
         yield factory
-
-
-@pytest_asyncio.fixture
-async def singleton_browser_spy() -> AsyncIterator[BrowserSpy]:
-    browser_spy = BrowserSpy()
-    async with patch_factory(SingletonBrowserTestDoubleFactory(browser_spy)):
-        yield browser_spy
 
 
 @pytest.fixture(
@@ -76,8 +57,7 @@ def browser(
 def disconnecting_browser(
     iterating_factory: IteratingBrowserTestDoubleFactory,
 ) -> BrowserSpy:
-    disconnecting_browser = BrowserSpy()
-    disconnecting_browser.configure_client(channel=DisconnectingChannel())
+    disconnecting_browser = browser_with_disconnecting_channel()
     iterating_factory.add(disconnecting_browser)
 
     return disconnecting_browser
@@ -104,6 +84,12 @@ def view_workspace(app: TestClient, workspace: str) -> Response:
     return app.get(f"/workspaces/view/{workspace}")
 
 
+@pytest_asyncio.fixture
+async def defaultenv() -> AsyncIterator[Environment]:
+    async with Fixture() as env:
+        yield env
+
+
 def test__workspaces__shows_the_workspace_names_starting_from_workspace_root(
     app: TestClient,
 ) -> None:
@@ -124,8 +110,10 @@ def test__browse_workspace__passes_full_workspace_path_to_ocrdbrowser(
     assert response.status_code == 200
 
 
-@pytest.mark.usefixtures("iterating_factory")
-def test__browse_workspace__assigns_and_tracks_session_id(app: TestClient) -> None:
+def test__browse_workspace__assigns_and_tracks_session_id(
+    defaultenv: Environment,
+) -> None:
+    app = defaultenv.app
     response = open_workspace(app, "a_workspace")
     first_session_id = response.cookies.get("session_id")
 
@@ -136,21 +124,24 @@ def test__browse_workspace__assigns_and_tracks_session_id(app: TestClient) -> No
     assert first_session_id == second_session_id
 
 
-@pytest.mark.usefixtures("iterating_factory")
+@pytest.mark.asyncio
 @use_custom_repository
-async def test__opened_workspace__when_socket_disconnects_on_broadway_side__shuts_down_browser(
+async def test__opened_workspace__when_socket_disconnects__shuts_down_browser(
     repository: RepositoryInitializer,
 ) -> None:
-    factory = SingletonRestoringBrowserFactory()
-    disconnecting_browser = factory.browser
-    disconnecting_browser.configure_client(channel=DisconnectingChannel())
+    session_id = "the-owner"
+    disconnecting_browser = browser_with_disconnecting_channel(
+        session_id, str(WORKSPACE_DIR / "a_workspace")
+    )
+    fixture = (
+        Fixture()
+        .with_repository_type(repository)
+        .with_running_browsers(disconnecting_browser)
+        .with_session_id(session_id)
+    )
 
-    async with repository(factory) as repo:
-        async with patch_repository(repo):
-            app = TestClient(create_app(create_settings()))
-            await repo.insert(disconnecting_browser)
-
-            _ = interact_with_workspace(app, "a_workspace")
+    async with fixture as env:
+        _ = interact_with_workspace(env.app, "a_workspace")
 
     assert disconnecting_browser.is_running is False
 
@@ -168,32 +159,42 @@ def test__disconnected_workspace__when_opening_again__viewing_proxies_requests_t
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("iterating_factory")
 @use_custom_repository
 async def test__when_requesting_resource__returns_resource_from_workspace(
     repository: RepositoryInitializer,
 ) -> None:
-    factory = SingletonRestoringBrowserFactory()
-    factory.browser.configure_client(response_factory=lambda path: path.encode())
+    session_id = "the-owner"
 
     workspace = "a_workspace"
     resource = "/some_resource"
     resource_in_workspace = workspace + "/some_resource"
+    full_workspace = str(WORKSPACE_DIR / workspace)
 
-    async with repository(factory) as repo:
-        async with patch_repository(repo):
-            app = TestClient(create_app(create_settings()))
-            open_workspace(app, workspace)
+    def echo_bytes(path: str) -> bytes:
+        return path.encode()
 
-            actual = view_workspace(app, resource_in_workspace)
+    browser = BrowserSpy(session_id, full_workspace)
+    browser.configure_client(response_factory=echo_bytes)
 
-            assert actual.content == resource.encode()
+    fixture = (
+        Fixture()
+        .with_repository_type(repository)
+        .with_running_browsers(browser)
+        .with_session_id(session_id)
+    )
+
+    async with fixture as env:
+        open_workspace(env.app, workspace)
+
+        actual = view_workspace(env.app, resource_in_workspace)
+
+        assert actual.content == resource.encode()
 
 
-@pytest.mark.usefixtures("iterating_factory")
 def test__browsed_workspace_is_ready__when_pinging__returns_ok(
-    app: TestClient,
+    defaultenv: Environment,
 ) -> None:
+    app = defaultenv.app
     workspace = "a_workspace"
     _ = interact_with_workspace(app, workspace)
 
@@ -202,102 +203,104 @@ def test__browsed_workspace_is_ready__when_pinging__returns_ok(
     assert result.status_code == 200
 
 
-@pytest.mark.usefixtures("iterating_factory")
 @use_custom_repository
 async def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
-    singleton_restoring_factory: SingletonRestoringBrowserFactory,
     repository: RepositoryInitializer,
 ) -> None:
-    async with repository(singleton_restoring_factory) as repo:
-        async with patch_repository(repo):
-            app = TestClient(create_app(create_settings()))
+    workspace = "a_workspace"
+    fixture = (
+        Fixture()
+        .with_browser_type(unreachable_browser)
+        .with_repository_type(repository)
+    )
 
-            browser = singleton_restoring_factory.browser
-            browser.configure_client(response=ConnectionError)
+    async with fixture as env:
+        open_workspace(env.app, workspace)
 
-            workspace = "a_workspace"
-            open_workspace(app, workspace)
-
-            result = app.get(f"/workspaces/ping/{workspace}")
+        result = env.app.get(f"/workspaces/ping/{workspace}")
 
     assert result.status_code == 502
 
 
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("iterating_factory")
+@use_custom_repository
 async def test__browsing_workspace__stores_browser_in_repository(
-    auto_repository: BrowserProcessRepository, app: TestClient
+    repository: RepositoryInitializer,
 ) -> None:
-    _ = interact_with_workspace(app, "a_workspace")
+    fixture = Fixture().with_repository_type(repository)
 
-    found_browsers = list(
-        await auto_repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
-    )
+    async with fixture as env:
+        _ = interact_with_workspace(env.app, "a_workspace")
+
+        found_browsers = list(
+            await env.repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
+        )
 
     assert len(found_browsers) == 1
 
 
-@pytest.mark.usefixtures("iterating_factory")
 @use_custom_repository
 async def test__error_connecting_to_workspace__removes_browser_from_repository(
-    singleton_restoring_factory: SingletonRestoringBrowserFactory,
     repository: RepositoryInitializer,
 ) -> None:
-    browser = singleton_restoring_factory.browser
-    browser.configure_client(response=ConnectionError)
+    fixture = (
+        Fixture()
+        .with_browser_type(unreachable_browser)
+        .with_repository_type(repository)
+    )
 
-    async with repository(singleton_restoring_factory) as repo:
-        async with patch_repository(repo):
-            app = TestClient(create_app(create_settings()))
-            app.cookies.set("session_id", browser.owner())
+    async with fixture as env:
+        open_workspace(env.app, "a_workspace")
+        _ = view_workspace(env.app, "a_workspace")
 
-            open_workspace(app, "a_workspace")
-            _ = view_workspace(app, "a_workspace")
+        found_browsers = list(
+            await env.repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
+        )
 
-            found_browsers = list(
-                await repo.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
-            )
-
-            assert len(found_browsers) == 0
+        assert len(found_browsers) == 0
 
 
-@pytest.mark.usefixtures("iterating_factory")
 @use_custom_repository
 async def test__when_socket_to_workspace_disconnects__removes_browser_from_repository(
-    singleton_restoring_factory: SingletonRestoringBrowserFactory,
     repository: RepositoryInitializer,
 ) -> None:
-    browser = singleton_restoring_factory.browser
-    browser.configure_client(channel=DisconnectingChannel())
+    # NOTE: it seems something is weird with the event loop in this test.
+    # Searching for browsers inside the with block happens BEFORE the browser is deleted.
+    # Therefore we run the lookup after the contextmanager has been closed
 
-    async with repository(singleton_restoring_factory) as repo:
-        async with patch_repository(repo):
-            app = TestClient(create_app(create_settings()))
-            app.cookies.set("session_id", browser.owner())
+    fixture = (
+        Fixture()
+        .with_repository_type(repository)
+        .with_browser_type(browser_with_disconnecting_channel)
+    )
 
-            _ = interact_with_workspace(app, "a_workspace")
+    async with fixture as env:
+        _ = interact_with_workspace(env.app, "a_workspace")
 
-            found_browsers = list(
-                await repo.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
-            )
+    found_browsers = list(
+        await env.repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
+    )
 
-            assert len(found_browsers) == 0
+    assert len(found_browsers) == 0
 
 
-@pytest.mark.usefixtures("iterating_factory")
 @use_custom_repository
 async def test__browser_stored_in_repo__when_browsing_workspace_redirects_to_restored_browser(
-    singleton_restoring_factory: SingletonRestoringBrowserFactory,
     repository: RepositoryInitializer,
 ) -> None:
-    async with repository(singleton_restoring_factory) as repo:
-        async with patch_repository(repo):
-            app = TestClient(create_app(create_settings()))
+    session_id = "the-owner"
+    workspace = "a_workspace"
+    full_workspace = str(WORKSPACE_DIR / workspace)
+    browser = BrowserSpy(session_id, full_workspace)
+    browser.configure_client(response=b"RESTORED BROWSER")
 
-            browser = singleton_restoring_factory.browser
-            browser.configure_client(response=b"RESTORED BROWSER")
-            await repo.insert(browser)
+    fixture = (
+        Fixture()
+        .with_repository_type(repository)
+        .with_running_browsers(browser)
+        .with_session_id(session_id)
+    )
 
-            response = interact_with_workspace(app, "a_workspace")
+    async with fixture as env:
+        response = interact_with_workspace(env.app, "a_workspace")
 
     assert response.content == b"RESTORED BROWSER"

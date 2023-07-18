@@ -1,7 +1,9 @@
 from typing import Collection, NamedTuple
+
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.browserprocess import BrowserRestoringFactory
-from tests.testdoubles import BrowserSpy
+
+from ._browserspy import BrowserSpy
 
 
 class BrowserEntry(NamedTuple):

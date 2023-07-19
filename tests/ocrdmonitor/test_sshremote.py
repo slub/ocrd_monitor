@@ -6,6 +6,7 @@ from testcontainers.general import DockerContainer
 
 from ocrdmonitor.processstatus import ProcessState
 from ocrdmonitor.sshremote import SSHRemote
+from tests import markers
 from tests.ocrdmonitor.sshcontainer import (
     get_process_group_from_container,
     SSHConfig,
@@ -17,7 +18,7 @@ T = TypeVar("T")
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-@pytest.mark.needs_docker
+@markers.skip_if_no_docker
 async def test_ps_over_ssh__returns_list_of_process_status(
     openssh_server: DockerContainer,
 ) -> None:

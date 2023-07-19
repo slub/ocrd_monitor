@@ -42,9 +42,7 @@ line-length = 100
 
 [tool.pytest.ini_options]
 markers = [
-    "integration: mark test as integration test",
-    "needs_docker: marks tests that need access to Docker in order to run",
-    "no_auto_repository: marks test to not automatically use the auto_repository fixture"
+    "integration: mark test as integration test"
 ]
 
 [tool.pdm.scripts]

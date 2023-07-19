@@ -1,7 +1,6 @@
 import asyncio
 import functools
-import shutil
-from typing import AsyncIterator, Callable, Literal, NamedTuple
+from typing import AsyncIterator, Callable, NamedTuple
 
 import pytest
 import pytest_asyncio
@@ -12,17 +11,8 @@ from ocrdbrowser import (
     OcrdBrowserFactory,
     SubProcessOcrdBrowserFactory,
 )
+from tests import markers
 from tests.decorators import compose
-
-
-def browse_ocrd_not_available() -> bool:
-    browse_ocrd = shutil.which("browse-ocrd")
-    broadway = shutil.which("broadwayd")
-    return not all((browse_ocrd, broadway))
-
-
-def docker_not_available() -> bool:
-    return not bool(shutil.which("docker"))
 
 
 create_docker_browser_factory = functools.partial(
@@ -37,20 +27,10 @@ browser_factory_test = compose(
         (
             pytest.param(
                 create_docker_browser_factory,
-                marks=(
-                    pytest.mark.needs_docker,
-                    pytest.mark.skipif(
-                        docker_not_available(),
-                        reason="Skipping because Docker is not available",
-                    ),
-                ),
+                marks=markers.skip_if_no_docker,
             ),
             pytest.param(
-                SubProcessOcrdBrowserFactory,
-                marks=pytest.mark.skipif(
-                    browse_ocrd_not_available(),
-                    reason="Skipping because browse-ocrd or broadwayd are not available",
-                ),
+                SubProcessOcrdBrowserFactory, marks=markers.skip_if_no_browse_ocrd
             ),
         ),
     ),

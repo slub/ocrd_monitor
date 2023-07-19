@@ -7,6 +7,7 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import Response
+from tests import markers
 
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.decorators import use_custom_repository
@@ -34,7 +35,7 @@ from tests.testdoubles import (
         inmemory_repository,
         pytest.param(
             mongodb_repository,
-            marks=(pytest.mark.integration, pytest.mark.needs_docker),
+            marks=(pytest.mark.integration, markers.skip_if_no_docker),
         ),
     ]
 )

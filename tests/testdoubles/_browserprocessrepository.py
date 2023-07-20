@@ -1,7 +1,7 @@
 from typing import Collection, NamedTuple
 
 from ocrdbrowser import OcrdBrowser
-from ocrdmonitor.browserprocess import BrowserRestoringFactory
+from ocrdmonitor.repositories import BrowserRestoringFactory
 
 from ._browserspy import BrowserSpy
 

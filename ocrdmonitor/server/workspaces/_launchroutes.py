@@ -6,7 +6,7 @@ from fastapi import APIRouter, Cookie, Depends, Request, Response
 from fastapi.templating import Jinja2Templates
 
 from ocrdbrowser import OcrdBrowserFactory
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdmonitor.repositories import BrowserProcessRepository
 from ocrdmonitor.server.settings import OcrdBrowserSettings
 
 

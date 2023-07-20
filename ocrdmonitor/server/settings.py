@@ -13,8 +13,8 @@ from ocrdbrowser import (
     SubProcessOcrdBrowserFactory,
     SubProcessOcrdBrowser,
 )
-from ocrdmonitor import dbmodel
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdmonitor.database import _browserprocessrepository
+from ocrdmonitor.repositories import BrowserProcessRepository
 
 BrowserType = Type[SubProcessOcrdBrowser] | Type[DockerOcrdBrowser]
 CreatingFactories: dict[str, Callable[[set[int]], OcrdBrowserFactory]] = {
@@ -46,7 +46,7 @@ class OcrdBrowserSettings(BaseModel):
 
     async def repository(self) -> BrowserProcessRepository:
         restore = RestoringFactories[self.mode]
-        return dbmodel.MongoBrowserProcessRepository(restore)
+        return _browserprocessrepository.MongoBrowserProcessRepository(restore)
 
     def factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.port_range))

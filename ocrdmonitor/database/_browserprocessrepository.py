@@ -1,56 +1,11 @@
-from datetime import datetime
-import asyncio
-import urllib
-from functools import cached_property
-from pathlib import Path
-from typing import Any, Collection, Mapping, Protocol
-
-import pymongo
-from beanie import Document, init_beanie
 from beanie.odm.queries.find import FindMany
-from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Any, Collection, Mapping
+import pymongo
+from beanie import Document
 
 from ocrdbrowser import OcrdBrowser
-from ocrdmonitor.browserprocess import BrowserRestoringFactory
+from ocrdmonitor.repositories import BrowserRestoringFactory
 
-
-class OcrdJob(Document):
-    pid: int | None = None
-    return_code: int | None = None
-    time_created: datetime | None = datetime.now()
-    time_terminated: datetime | None = None
-    process_id: str
-    task_id: str
-    process_dir: Path
-    workdir: Path
-    remotedir: str
-    workflow_file: Path
-    controller_address: str
-
-    class Settings:
-        indexes = [
-            pymongo.IndexModel(
-                [
-                    ("process_dir", pymongo.ASCENDING),
-                    ("time_created", pymongo.DESCENDING),
-                ]
-            )
-        ]
-
-    #@cached_property
-    @property
-    def is_running(self) -> bool:
-        return self.pid is not None
-
-    #@cached_property
-    @property
-    def is_completed(self) -> bool:
-        return self.return_code is not None
-
-    #@cached_property
-    @property
-    def workflow(self) -> str:
-        return Path(self.workflow_file).name
 
 class BrowserProcess(Document):
     address: str
@@ -151,46 +106,3 @@ class MongoBrowserProcessRepository:
 
     async def clean(self) -> None:
         await BrowserProcess.delete_all()
-
-
-def rebuild_connection_string(connection_str: str) -> str:
-    connection_str = connection_str.removeprefix("mongodb://")
-    credentials, host = connection_str.split("@")
-    user, password = credentials.split(":")
-    password = urllib.parse.quote(password)
-    return f"mongodb://{user}:{password}@{host}"
-
-
-class InitDatabase(Protocol):
-    async def __call__(
-        self, connection_str: str, force_initialize: bool = False
-    ) -> None:
-        ...
-
-
-def __beanie_initializer() -> InitDatabase:
-    """
-    We use this as a workaround to prevent beanie from being initialized
-    multiple times when requesting the repository from OcrdBrowserSettings
-    unless stated explicitly (e.g. for testing purposes)
-    """
-    __initialized = False
-
-    async def init(connection_str: str, force_initialize: bool = False) -> None:
-        nonlocal __initialized
-        if __initialized and not force_initialize:
-            return
-
-        __initialized = True
-        connection_str = rebuild_connection_string(connection_str)
-        client: AsyncIOMotorClient = AsyncIOMotorClient(connection_str)
-        client.get_io_loop = asyncio.get_event_loop
-        await init_beanie(
-            database=client.ocrd,
-            document_models=[BrowserProcess, OcrdJob],  # type: ignore
-        )
-
-    return init
-
-
-init = __beanie_initializer()

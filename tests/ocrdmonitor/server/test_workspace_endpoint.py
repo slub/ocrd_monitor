@@ -7,7 +7,6 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import Response
-from tests import markers
 
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.decorators import use_custom_repository
@@ -16,47 +15,13 @@ from tests.ocrdmonitor.server.fixtures.environment import (
     Fixture,
     RepositoryInitializer,
 )
-from tests.ocrdmonitor.server.fixtures.repository import (
-    inmemory_repository,
-    mongodb_repository,
-)
 from tests.ocrdmonitor.server.fixtures.settings import WORKSPACE_DIR
 from tests.testdoubles import (
     Browser_Heading,
-    BrowserFake,
     BrowserSpy,
     browser_with_disconnecting_channel,
     unreachable_browser,
 )
-
-
-@pytest.fixture(
-    params=[
-        inmemory_repository,
-        pytest.param(
-            mongodb_repository,
-            marks=(pytest.mark.integration, markers.skip_if_no_docker),
-        ),
-    ]
-)
-def repository_fixture(request: pytest.FixtureRequest) -> Fixture:
-    repository: RepositoryInitializer = request.param
-    return Fixture().with_repository_type(repository)
-
-
-@pytest.fixture(
-    params=[BrowserSpy, pytest.param(BrowserFake, marks=pytest.mark.integration)]
-)
-def browser_fixture(
-    repository_fixture: Fixture, request: pytest.FixtureRequest
-) -> Fixture:
-    return repository_fixture.with_browser_type(request.param)
-
-
-@pytest_asyncio.fixture
-async def app(browser_fixture: Fixture) -> AsyncIterator[TestClient]:
-    async with browser_fixture as env:
-        yield env.app
 
 
 def assert_is_browser_response(actual: Response) -> None:

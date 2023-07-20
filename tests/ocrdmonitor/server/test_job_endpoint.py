@@ -1,21 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Generator
+from typing import AsyncIterator, Generator
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from ocrdmonitor.ocrdcontroller import RemoteServer
-from ocrdmonitor.ocrdjob import OcrdJob
+import ocrdmonitor.sshremote
+from ocrdmonitor.database._ocrdjobrepository import OcrdJob
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
-from ocrdmonitor.server.settings import OcrdControllerSettings
+from ocrdmonitor.sshremote import SSHConfig
 from tests.ocrdmonitor.server import scraping
+from tests.ocrdmonitor.server.fixtures.environment import Fixture
+from tests.ocrdmonitor.server.fixtures.repository import mongodb_repository
 from tests.ocrdmonitor.server.fixtures.settings import JOB_DIR
-from tests.ocrdmonitor.test_jobs import JOB_TEMPLATE, jobfile_content_for
 
 
 @pytest.fixture(autouse=True)
@@ -30,32 +31,43 @@ def prepare_and_clean_files() -> Generator[None, None, None]:
     JOB_DIR.rmdir()
 
 
-@pytest.fixture
-def running_ocrd_job(
-    monkeypatch: pytest.MonkeyPatch,
-) -> Generator[tuple[OcrdJob, ProcessStatus], None, None]:
-    pid = 1234
-    expected_status = make_status(pid)
-    running_job = replace(JOB_TEMPLATE, pid=pid)
-    jobfile = write_job_file_for(running_job)
-    patch_controller_remote(monkeypatch, expected_status)
+def job_template() -> OcrdJob:
+    created_at = datetime(2023, 4, 12, hour=13, minute=0, second=0)
+    terminated_at = created_at + timedelta(hours=1)
+    return OcrdJob(
+        process_id="5432",
+        task_id="45989",
+        process_dir=Path("/data/5432"),
+        workdir=Path("ocr-d/data/5432"),
+        workflow_file=Path("ocr-workflow-default.sh"),
+        remotedir="/remote/job/dir",
+        controller_address="controller.ocrdhost.com",
+        time_created=created_at,
+        time_terminated=terminated_at,
+    )
 
-    yield running_job, expected_status
 
-    jobfile.unlink()
+@pytest_asyncio.fixture
+async def app() -> AsyncIterator[TestClient]:
+    fixture = Fixture().with_repository_type(mongodb_repository)
+    async with fixture as env:
+        yield env.app
 
 
+@pytest.mark.asyncio
+@pytest.mark.integration
 @pytest.mark.parametrize(
     argnames=["return_code", "result_text"],
     argvalues=[(0, "SUCCESS"), (1, "FAILURE")],
 )
-def test__given_a_completed_ocrd_job__the_job_endpoint_lists_it_in_a_table(
+async def test__given_a_completed_ocrd_job__the_job_endpoint_lists_it_in_a_table(
     app: TestClient,
     return_code: int,
     result_text: str,
 ) -> None:
-    completed_job = replace(JOB_TEMPLATE, return_code=return_code)
-    write_job_file_for(completed_job)
+    completed_job = job_template()
+    completed_job.return_code = return_code
+    await completed_job.insert()
 
     response = app.get("/jobs/")
 
@@ -63,16 +75,24 @@ def test__given_a_completed_ocrd_job__the_job_endpoint_lists_it_in_a_table(
     assert_lists_completed_job(completed_job, result_text, response)
 
 
-def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resource_consumption(
-    running_ocrd_job: tuple[OcrdJob, ProcessStatus],
-    app: TestClient,
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resource_consumption(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    job, expected_status = running_ocrd_job
+    pid = 1234
+    expected_status = make_status(pid)
+    patch_controller(monkeypatch, expected_status)
 
-    response = app.get("/jobs/")
+    fixture = Fixture().with_repository_type(mongodb_repository)
+    async with fixture as env:
+        app = env.app
+        job = await running_ocrd_job(pid)
 
-    assert response.is_success
-    assert_lists_running_job(job, expected_status, response)
+        response = app.get("/jobs/")
+
+        assert response.is_success
+        assert_lists_running_job(job, expected_status, response)
 
 
 def make_status(pid: int) -> ProcessStatus:
@@ -87,20 +107,29 @@ def make_status(pid: int) -> ProcessStatus:
     return expected_status
 
 
-def patch_controller_remote(
+async def running_ocrd_job(pid: int) -> OcrdJob:
+    running_job = job_template()
+    running_job.pid = pid
+    await running_job.insert()
+
+    return running_job
+
+
+def patch_controller(
     monkeypatch: pytest.MonkeyPatch, expected_status: ProcessStatus
 ) -> None:
-    def make_remote_stub(self: OcrdControllerSettings) -> RemoteServer:
-        class RemoteStub:
-            async def read_file(self, path: str) -> str:
-                return str(expected_status.pid)
+    class ControllerStub:
+        def __init__(self, _: SSHConfig) -> None:
+            pass
 
-            async def process_status(self, process_group: int) -> list[ProcessStatus]:
-                return [expected_status]
+        async def read_file(self, path: str) -> str:
+            return str(expected_status.pid)
 
-        return RemoteStub()
+        async def process_status(self, process_group: int) -> list[ProcessStatus]:
+            return [expected_status]
 
-    monkeypatch.setattr(OcrdControllerSettings, "controller_remote", make_remote_stub)
+    monkeypatch.setattr(ocrdmonitor.sshremote, "SSHRemote", RemoteStub)
+    print(ocrdmonitor.sshremote.SSHRemote)
 
 
 def assert_lists_completed_job(
@@ -110,11 +139,11 @@ def assert_lists_completed_job(
 
     assert texts == [
         str(completed_job.time_terminated),
-        str(completed_job.kitodo_details.task_id),
-        str(completed_job.kitodo_details.process_id),
+        str(completed_job.task_id),
+        str(completed_job.process_id),
         completed_job.workflow_file.name,
         f"{completed_job.return_code} ({result_text})",
-        completed_job.kitodo_details.processdir.name,
+        completed_job.process_dir.name,
         "ocrd.log",
     ]
 
@@ -128,8 +157,8 @@ def assert_lists_running_job(
 
     assert texts == [
         str(running_job.time_created),
-        str(running_job.kitodo_details.task_id),
-        str(running_job.kitodo_details.process_id),
+        str(running_job.task_id),
+        str(running_job.process_id),
         running_job.workflow_file.name,
         str(process_status.pid),
         str(process_status.state),
@@ -142,11 +171,3 @@ def assert_lists_running_job(
 def collect_texts_from_job_table(content: bytes, table_id: str) -> list[str]:
     selector = f"#{table_id} td:not(:has(a)):not(:has(button)), #{table_id} td > a"
     return scraping.parse_texts(content, selector)
-
-
-def write_job_file_for(job: OcrdJob) -> Path:
-    content = jobfile_content_for(job)
-    jobfile = JOB_DIR / "jobfile"
-    jobfile.touch(exist_ok=True)
-    jobfile.write_text(content)
-    return jobfile

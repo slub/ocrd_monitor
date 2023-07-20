@@ -35,6 +35,6 @@ def browser_fixture(
 
 
 @pytest_asyncio.fixture
-async def app() -> AsyncIterator[TestClient]:
-    async with Fixture() as env:
+async def app(browser_fixture: Fixture) -> AsyncIterator[TestClient]:
+    async with browser_fixture as env:
         yield env.app

@@ -11,7 +11,7 @@ from typing import (
 
 from fastapi.testclient import TestClient
 
-from ocrdmonitor.browserprocess import BrowserProcessRepository, BrowserRestoringFactory
+from ocrdmonitor.repositories import BrowserProcessRepository, BrowserRestoringFactory
 from ocrdmonitor.server.app import create_app
 from tests.ocrdmonitor.server.fixtures.factory import patch_factory
 from tests.ocrdmonitor.server.fixtures.repository import (

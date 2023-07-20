@@ -1,20 +1,10 @@
 from __future__ import annotations
 
-import sys
-import logging
-from pathlib import Path
 from typing import Protocol
-from ocrdmonitor.server.settings import OcrdControllerSettings
-from ocrdmonitor.sshremote import SSHRemote
 
-#from ocrdmonitor.ocrdjob import OcrdJob
-from ocrdmonitor.dbmodel import OcrdJob
-from ocrdmonitor.processstatus import ProcessStatus, ProcessState
+from ocrdmonitor.processstatus import ProcessState, ProcessStatus
+from ocrdmonitor.repositories import JobRepository, OcrdJob
 
-if sys.version_info >= (3, 10):
-    from typing import TypeGuard
-else:
-    from typing_extensions import TypeGuard
 
 class RemoteServer(Protocol):
     async def read_file(self, path: str) -> str:
@@ -25,13 +15,9 @@ class RemoteServer(Protocol):
 
 
 class OcrdController:
-    def __init__(self, settings: OcrdControllerSettings) -> None:
-        self._remote : RemoteServer = SSHRemote(settings)
-        logging.info(f"process_query: {self._remote}")
-
-    async def get_jobs(self) -> list[OcrdJob]:
-        jobs = await OcrdJob.find_all().to_list()
-        return jobs
+    def __init__(self, remote: RemoteServer, job_repository: JobRepository) -> None:
+        self._remote = remote
+        self._job_repository = job_repository
 
     async def status_for(self, ocrd_job: OcrdJob) -> ProcessStatus | None:
         if ocrd_job.remotedir is None:

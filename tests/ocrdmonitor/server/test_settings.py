@@ -13,11 +13,11 @@ from ocrdmonitor.server.settings import (
 
 
 EXPECTED = Settings(
+    db_connection_string="user@mongo:mongodb:1234",
     ocrd_browser=OcrdBrowserSettings(
         mode="native",
         workspace_dir="path/to/workdir",
         port_range=(9000, 9100),
-        db_connection_string="user@mongo:mongodb:1234"
     ),
     ocrd_controller=OcrdControllerSettings(
         job_dir="path/to/jobdir",
@@ -40,6 +40,7 @@ def expected_to_env() -> dict[str, str]:
         }
 
     return dict(
+        DB_CONNECTION_STRING=EXPECTED.db_connection_string,
         **to_dict("BROWSER", EXPECTED.ocrd_browser.dict()),
         **to_dict("CONTROLLER", EXPECTED.ocrd_controller.dict()),
         **to_dict("LOGVIEW", EXPECTED.ocrd_logview.dict()),

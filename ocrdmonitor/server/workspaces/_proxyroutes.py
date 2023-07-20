@@ -9,7 +9,7 @@ from fastapi import APIRouter, Cookie, Depends, Request, Response, WebSocket
 from fastapi.templating import Jinja2Templates
 
 from ocrdbrowser import OcrdBrowser
-from ocrdmonitor.browserprocess import BrowserProcessRepository
+from ocrdmonitor.repositories import BrowserProcessRepository
 from ocrdmonitor.server.settings import OcrdBrowserSettings
 
 from ._browsercommunication import CloseCallback, communicate_until_closed, forward

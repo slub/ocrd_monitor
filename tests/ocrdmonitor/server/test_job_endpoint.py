@@ -1,40 +1,24 @@
 from __future__ import annotations
+from dataclasses import replace
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import AsyncIterator, Generator
 
 import pytest
-import pytest_asyncio
-from fastapi.testclient import TestClient
 from httpx import Response
 
-import ocrdmonitor.sshremote
-from ocrdmonitor.database._ocrdjobrepository import OcrdJob
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
-from ocrdmonitor.sshremote import SSHConfig
+from ocrdmonitor.protocols import OcrdJob
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.fixtures.environment import Fixture
-from tests.ocrdmonitor.server.fixtures.repository import mongodb_repository
-from tests.ocrdmonitor.server.fixtures.settings import JOB_DIR
-
-
-@pytest.fixture(autouse=True)
-def prepare_and_clean_files() -> Generator[None, None, None]:
-    JOB_DIR.mkdir(exist_ok=True)
-
-    yield
-
-    for jobfile in JOB_DIR.glob("*"):
-        jobfile.unlink()
-
-    JOB_DIR.rmdir()
 
 
 def job_template() -> OcrdJob:
     created_at = datetime(2023, 4, 12, hour=13, minute=0, second=0)
     terminated_at = created_at + timedelta(hours=1)
     return OcrdJob(
+        pid=None,
+        return_code=None,
         process_id="5432",
         task_id="45989",
         process_dir=Path("/data/5432"),
@@ -47,47 +31,39 @@ def job_template() -> OcrdJob:
     )
 
 
-@pytest_asyncio.fixture
-async def app() -> AsyncIterator[TestClient]:
-    fixture = Fixture().with_repository_type(mongodb_repository)
-    async with fixture as env:
-        yield env.app
-
-
 @pytest.mark.asyncio
-@pytest.mark.integration
 @pytest.mark.parametrize(
     argnames=["return_code", "result_text"],
     argvalues=[(0, "SUCCESS"), (1, "FAILURE")],
 )
 async def test__given_a_completed_ocrd_job__the_job_endpoint_lists_it_in_a_table(
-    app: TestClient,
+    repository_fixture: Fixture,
     return_code: int,
     result_text: str,
 ) -> None:
-    completed_job = job_template()
-    completed_job.return_code = return_code
-    await completed_job.insert()
+    async with repository_fixture as env:
+        completed_job = replace(job_template(), return_code=return_code)
+        await env._repositories.ocrd_jobs.insert(completed_job)
 
-    response = app.get("/jobs/")
+        response = env.app.get("/jobs/")
 
-    assert response.is_success
-    assert_lists_completed_job(completed_job, result_text, response)
+        assert response.is_success
+        assert_lists_completed_job(completed_job, result_text, response)
 
 
 @pytest.mark.asyncio
-@pytest.mark.integration
 async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resource_consumption(
-    monkeypatch: pytest.MonkeyPatch,
+    repository_fixture: Fixture,
 ) -> None:
     pid = 1234
     expected_status = make_status(pid)
-    patch_controller(monkeypatch, expected_status)
+    remote_stub = RemoteServerStub(expected_status)
+    fixture = repository_fixture.with_controller_remote(remote_stub)
 
-    fixture = Fixture().with_repository_type(mongodb_repository)
     async with fixture as env:
         app = env.app
-        job = await running_ocrd_job(pid)
+        job = running_ocrd_job(pid)
+        await env._repositories.ocrd_jobs.insert(job)
 
         response = app.get("/jobs/")
 
@@ -107,29 +83,20 @@ def make_status(pid: int) -> ProcessStatus:
     return expected_status
 
 
-async def running_ocrd_job(pid: int) -> OcrdJob:
-    running_job = job_template()
-    running_job.pid = pid
-    await running_job.insert()
+class RemoteServerStub:
+    def __init__(self, expected_status: ProcessStatus) -> None:
+        self.expected_status = expected_status
 
+    async def read_file(self, path: str) -> str:
+        return str(self.expected_status.pid)
+
+    async def process_status(self, process_group: int) -> list[ProcessStatus]:
+        return [self.expected_status]
+
+
+def running_ocrd_job(pid: int) -> OcrdJob:
+    running_job = replace(job_template(), pid=pid)
     return running_job
-
-
-def patch_controller(
-    monkeypatch: pytest.MonkeyPatch, expected_status: ProcessStatus
-) -> None:
-    class ControllerStub:
-        def __init__(self, _: SSHConfig) -> None:
-            pass
-
-        async def read_file(self, path: str) -> str:
-            return str(expected_status.pid)
-
-        async def process_status(self, process_group: int) -> list[ProcessStatus]:
-            return [expected_status]
-
-    monkeypatch.setattr(ocrdmonitor.sshremote, "SSHRemote", RemoteStub)
-    print(ocrdmonitor.sshremote.SSHRemote)
 
 
 def assert_lists_completed_job(

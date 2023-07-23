@@ -6,7 +6,10 @@ from ._browserfactory import (
     IteratingBrowserTestDoubleFactory,
 )
 from ._browserfake import BrowserFake
-from ._browserprocessrepository import InMemoryBrowserProcessRepository
+from ._inmemoryrepositories import (
+    InMemoryBrowserProcessRepository,
+    InMemoryJobRepository,
+)
 from ._browserspy import (
     Browser_Heading,
     BrowserSpy,
@@ -30,6 +33,7 @@ __all__ = [
     "FAKE_HOST_ADDRESS",
     "IteratingBrowserTestDoubleFactory",
     "InMemoryBrowserProcessRepository",
+    "InMemoryJobRepository",
     "BrowserRegistry",
     "ProxyBrowser",
     "RegistryBrowserFactory",

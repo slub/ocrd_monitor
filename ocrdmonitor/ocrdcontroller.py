@@ -1,23 +1,12 @@
 from __future__ import annotations
 
-from typing import Protocol
-
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
-from ocrdmonitor.repositories import JobRepository, OcrdJob
-
-
-class RemoteServer(Protocol):
-    async def read_file(self, path: str) -> str:
-        ...
-
-    async def process_status(self, process_group: int) -> list[ProcessStatus]:
-        ...
+from ocrdmonitor.protocols import OcrdJob, RemoteServer
 
 
 class OcrdController:
-    def __init__(self, remote: RemoteServer, job_repository: JobRepository) -> None:
+    def __init__(self, remote: RemoteServer) -> None:
         self._remote = remote
-        self._job_repository = job_repository
 
     async def status_for(self, ocrd_job: OcrdJob) -> ProcessStatus | None:
         if ocrd_job.remotedir is None:

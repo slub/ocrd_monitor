@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import pymongo
 from beanie import Document
 
@@ -5,8 +6,10 @@ from beanie import Document
 from datetime import datetime
 from pathlib import Path
 
+from ocrdmonitor.protocols import OcrdJob
 
-class OcrdJob(Document):
+
+class MongoOcrdJob(Document):
     pid: int | None = None
     return_code: int | None = None
     time_created: datetime | None = datetime.now()
@@ -28,3 +31,11 @@ class OcrdJob(Document):
                 ]
             )
         ]
+
+
+class MongoJobRepository:
+    async def insert(self, job: OcrdJob) -> None:
+        await MongoOcrdJob(**asdict(job)).insert()  # type: ignore
+
+    async def find_all(self) -> list[OcrdJob]:
+        return [OcrdJob(**j.dict(exclude={"id"})) for j in await MongoOcrdJob.find_all().to_list()]

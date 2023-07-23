@@ -52,21 +52,3 @@ def test__can_parse_env() -> None:
     sut = Settings()
 
     assert sut == EXPECTED
-
-
-@pytest.mark.parametrize(
-    argnames=["mode", "factory_type"],
-    argvalues=[
-        ("native", SubProcessOcrdBrowserFactory),
-        ("docker", DockerOcrdBrowserFactory),
-    ],
-)
-@patch.dict(os.environ, expected_to_env())
-def test__browser_settings__produces_matching_factory_for_selected_mode(
-    mode: Literal["native"] | Literal["docker"], factory_type: Type[Any]
-) -> None:
-    sut = Settings()
-    sut.ocrd_browser.mode = mode
-
-    actual = sut.ocrd_browser.factory()
-    assert isinstance(actual, factory_type)

@@ -3,13 +3,13 @@ import asyncio
 import logging
 
 from pathlib import Path
-from typing import Callable
+from typing import Annotated, Callable
 
 from fastapi import APIRouter, Cookie, Depends, Request, Response, WebSocket
 from fastapi.templating import Jinja2Templates
 
 from ocrdbrowser import OcrdBrowser
-from ocrdmonitor.repositories import BrowserProcessRepository
+from ocrdmonitor.protocols import BrowserProcessRepository
 from ocrdmonitor.server.settings import OcrdBrowserSettings
 
 from ._browsercommunication import CloseCallback, communicate_until_closed, forward
@@ -50,14 +50,14 @@ def get_session_id(request: Request, session_id: str | None) -> str:
 def register_proxyroutes(
     router: APIRouter,
     templates: Jinja2Templates,
-    browser_settings: OcrdBrowserSettings,
+    browser_repository: Callable[[], BrowserProcessRepository],
     full_workspace: Callable[[str | Path], str],
 ) -> None:
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
     async def ping_workspace(
         workspace: Path,
+        repository: BrowserProcessRepository = browser_repository, # type: ignore[assignment]
         session_id: str = Cookie(),
-        repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
         browser = await repository.first(
             owner=session_id, workspace=full_workspace(workspace)
@@ -79,8 +79,8 @@ def register_proxyroutes(
     async def workspace_reverse_proxy(
         request: Request,
         workspace: Path,
+        repository: BrowserProcessRepository = browser_repository, # type: ignore[assignment]
         session_id: str = Cookie(default=None),
-        repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> Response:
         # The session_id cookie is not always properly injected for some reason
         # Therefore we try to get it from the request if it is None
@@ -108,8 +108,8 @@ def register_proxyroutes(
     async def workspace_socket_proxy(
         websocket: WebSocket,
         workspace: Path,
+        repository: BrowserProcessRepository = browser_repository, # type: ignore[assignment]
         session_id: str = Cookie(),
-        repository: BrowserProcessRepository = Depends(browser_settings.repository),
     ) -> None:
         browser = await repository.first(
             owner=session_id, workspace=full_workspace(workspace)

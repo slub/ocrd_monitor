@@ -9,8 +9,15 @@ from ocrdbrowser import (
     SubProcessOcrdBrowserFactory,
 )
 from ocrdmonitor import database
-from ocrdmonitor.repositories import BrowserProcessRepository
+from ocrdmonitor.ocrdcontroller import OcrdController
+from ocrdmonitor.protocols import (
+    BrowserProcessRepository,
+    JobRepository,
+    RemoteServer,
+    Repositories,
+)
 from ocrdmonitor.server.settings import Settings
+from ocrdmonitor.sshremote import SSHRemote
 
 BrowserType = Type[SubProcessOcrdBrowser] | Type[DockerOcrdBrowser]
 CreatingFactories: dict[str, Callable[[set[int]], OcrdBrowserFactory]] = {
@@ -24,12 +31,7 @@ RestoringFactories: dict[str, BrowserType] = {
 }
 
 
-class Repositories(NamedTuple):
-    browser_processes: BrowserProcessRepository
-    ocrd_jobs: Type[database.OcrdJob]
-
-
-class Environment:
+class ProductionEnvironment:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
@@ -37,9 +39,13 @@ class Environment:
         await database.init(self.settings.db_connection_string)
         restoring_factory = RestoringFactories[self.settings.ocrd_browser.mode]
         return Repositories(
-            database.MongoBrowserProcessRepository(restoring_factory), database.OcrdJob
+            database.MongoBrowserProcessRepository(restoring_factory),
+            database.MongoJobRepository(),
         )
 
     def browser_factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.settings.ocrd_browser.port_range))
         return CreatingFactories[self.settings.ocrd_browser.mode](port_range_set)
+
+    def controller_server(self) -> RemoteServer:
+        return SSHRemote(self.settings.ocrd_controller)

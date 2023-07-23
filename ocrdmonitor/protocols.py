@@ -1,7 +1,11 @@
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Collection, NamedTuple, Protocol
-from ocrdbrowser import OcrdBrowser
+
+from ocrdbrowser import OcrdBrowser, OcrdBrowserFactory
+from ocrdmonitor.processstatus import ProcessStatus
+from ocrdmonitor.server.settings import Settings
 
 
 class BrowserRestoringFactory(Protocol):
@@ -33,7 +37,8 @@ class BrowserProcessRepository(Protocol):
         ...
 
 
-class OcrdJob(NamedTuple):
+@dataclass(frozen=True)
+class OcrdJob:
     pid: int | None
     return_code: int | None
     time_created: datetime
@@ -60,5 +65,34 @@ class OcrdJob(NamedTuple):
 
 
 class JobRepository(Protocol):
+    async def insert(self, job: OcrdJob) -> None:
+        ...
+
     async def find_all(self) -> list[OcrdJob]:
+        ...
+
+
+class RemoteServer(Protocol):
+    async def read_file(self, path: str) -> str:
+        ...
+
+    async def process_status(self, process_group: int) -> list[ProcessStatus]:
+        ...
+
+
+class Repositories(NamedTuple):
+    browser_processes: BrowserProcessRepository
+    ocrd_jobs: JobRepository
+
+
+class Environment(Protocol):
+    settings: Settings
+
+    async def repositories(self) -> Repositories:
+        ...
+
+    def browser_factory(self) -> OcrdBrowserFactory:
+        ...
+
+    def controller_server(self) -> RemoteServer:
         ...

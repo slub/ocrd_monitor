@@ -1,7 +1,7 @@
 from typing import Collection, NamedTuple
 
 from ocrdbrowser import OcrdBrowser
-from ocrdmonitor.repositories import BrowserRestoringFactory
+from ocrdmonitor.protocols import BrowserRestoringFactory, OcrdJob
 
 from ._browserspy import BrowserSpy
 
@@ -58,7 +58,6 @@ class InMemoryBrowserProcessRepository:
 
             return matches
 
-        print(self._processes)
         return [
             self.restoring_factory(
                 process_id=browser.process_id,
@@ -76,3 +75,14 @@ class InMemoryBrowserProcessRepository:
 
     async def count(self) -> int:
         return len(self._processes)
+
+
+class InMemoryJobRepository:
+    def __init__(self, jobs: list[OcrdJob] | None = None) -> None:
+        self._jobs = jobs or []
+
+    async def insert(self, job: OcrdJob) -> None:
+        self._jobs.append(job)
+
+    async def find_all(self) -> list[OcrdJob]:
+        return list(self._jobs)

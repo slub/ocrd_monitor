@@ -19,4 +19,4 @@ async def test__browsers_in_db__on_startup__cleans_unreachables_from_db(
     ).with_session_id(session_id)
 
     async with fixture as env:
-        assert await env.repository.count() == 1
+        assert await env._repositories.browser_processes.count() == 1

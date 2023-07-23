@@ -4,7 +4,7 @@ import pymongo
 from beanie import Document
 
 from ocrdbrowser import OcrdBrowser
-from ocrdmonitor.repositories import BrowserRestoringFactory
+from ocrdmonitor.protocols import BrowserRestoringFactory
 
 
 class BrowserProcess(Document):

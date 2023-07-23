@@ -1,13 +1,9 @@
-from ._browserprocessrepository import (
-    BrowserProcess,
-    MongoBrowserProcessRepository,
-)
+from ._browserprocessrepository import MongoBrowserProcessRepository
 from ._initdb import init
-from ._ocrdjobrepository import OcrdJob
+from ._ocrdjobrepository import MongoJobRepository
 
 __all__ = [
-    "BrowserProcess",
     "MongoBrowserProcessRepository",
-    "OcrdJob",
+    "MongoJobRepository",
     "init",
 ]

@@ -6,7 +6,7 @@ from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from ._browserprocessrepository import BrowserProcess
-from ._ocrdjobrepository import OcrdJob
+from ._ocrdjobrepository import MongoOcrdJob
 
 
 def rebuild_connection_string(connection_str: str) -> str:
@@ -43,7 +43,7 @@ def __beanie_initializer() -> InitDatabase:
         client.get_io_loop = asyncio.get_event_loop
         await init_beanie(
             database=client.ocrd,
-            document_models=[BrowserProcess, OcrdJob],  # type: ignore
+            document_models=[BrowserProcess, MongoOcrdJob],  # type: ignore
         )
 
     return init

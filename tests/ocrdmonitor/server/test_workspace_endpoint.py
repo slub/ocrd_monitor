@@ -11,7 +11,7 @@ from httpx import Response
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.decorators import use_custom_repository
 from tests.ocrdmonitor.server.fixtures.environment import (
-    Environment,
+    DevEnvironment,
     Fixture,
     RepositoryInitializer,
 )
@@ -46,7 +46,7 @@ def view_workspace(app: TestClient, workspace: str) -> Response:
 
 
 @pytest_asyncio.fixture
-async def defaultenv(browser_fixture: Fixture) -> AsyncIterator[Environment]:
+async def defaultenv(browser_fixture: Fixture) -> AsyncIterator[DevEnvironment]:
     async with browser_fixture as env:
         yield env
 
@@ -184,12 +184,14 @@ async def test__browsed_workspace_not_ready__when_pinging__returns_bad_gateway(
 
 @pytest.mark.asyncio
 async def test__browsing_workspace__stores_browser_in_repository(
-    defaultenv: Environment,
+    defaultenv: DevEnvironment,
 ) -> None:
     _ = interact_with_workspace(defaultenv.app, "a_workspace")
 
     found_browsers = list(
-        await defaultenv.repository.find(workspace=str(WORKSPACE_DIR / "a_workspace"))
+        await defaultenv._repositories.browser_processes.find(
+            workspace=str(WORKSPACE_DIR / "a_workspace")
+        )
     )
 
     assert len(found_browsers) == 1
@@ -204,7 +206,7 @@ async def test__error_connecting_to_workspace__removes_browser_from_repository(
         open_workspace(env.app, "a_workspace")
         _ = view_workspace(env.app, "a_workspace")
 
-        browsers = await env.repository.find(
+        browsers = await env._repositories.browser_processes.find(
             workspace=str(WORKSPACE_DIR / "a_workspace")
         )
 
@@ -226,7 +228,7 @@ async def test__when_socket_to_workspace_disconnects__removes_browser_from_repos
         _ = interact_with_workspace(env.app, "a_workspace")
         await asyncio.sleep(0.1)
 
-        browsers = await env.repository.find(
+        browsers = await env._repositories.browser_processes.find(
             workspace=str(WORKSPACE_DIR / "a_workspace")
         )
 

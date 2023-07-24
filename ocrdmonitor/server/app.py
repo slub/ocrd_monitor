@@ -7,7 +7,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ocrdmonitor.ocrdcontroller import OcrdController
 
 from ocrdmonitor.protocols import Environment
 from ocrdmonitor.server.index import create_index

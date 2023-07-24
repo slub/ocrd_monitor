@@ -6,7 +6,7 @@ import logging
 import os
 import signal
 from shutil import which
-from typing import NamedTuple, Self, Type, cast
+from typing import NamedTuple, Type, cast
 
 from ._browser import OcrdBrowser, OcrdBrowserClient
 from ._client import HttpBrowserClient

@@ -1,16 +1,15 @@
 from __future__ import annotations
+
 import asyncio
 import logging
-
 from pathlib import Path
-from typing import Annotated, Callable
+from typing import Callable
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, WebSocket
+from fastapi import APIRouter, Cookie, Request, Response, WebSocket
 from fastapi.templating import Jinja2Templates
 
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.protocols import BrowserProcessRepository
-from ocrdmonitor.server.settings import OcrdBrowserSettings
 
 from ._browsercommunication import CloseCallback, communicate_until_closed, forward
 
@@ -56,7 +55,7 @@ def register_proxyroutes(
     @router.get("/ping/{workspace:path}", name="workspaces.ping")
     async def ping_workspace(
         workspace: Path,
-        repository: BrowserProcessRepository = browser_repository, # type: ignore[assignment]
+        repository: BrowserProcessRepository = browser_repository,  # type: ignore[assignment]
         session_id: str = Cookie(),
     ) -> Response:
         browser = await repository.first(
@@ -79,7 +78,7 @@ def register_proxyroutes(
     async def workspace_reverse_proxy(
         request: Request,
         workspace: Path,
-        repository: BrowserProcessRepository = browser_repository, # type: ignore[assignment]
+        repository: BrowserProcessRepository = browser_repository,  # type: ignore[assignment]
         session_id: str = Cookie(default=None),
     ) -> Response:
         # The session_id cookie is not always properly injected for some reason
@@ -108,7 +107,7 @@ def register_proxyroutes(
     async def workspace_socket_proxy(
         websocket: WebSocket,
         workspace: Path,
-        repository: BrowserProcessRepository = browser_repository, # type: ignore[assignment]
+        repository: BrowserProcessRepository = browser_repository,  # type: ignore[assignment]
         session_id: str = Cookie(),
     ) -> None:
         browser = await repository.first(

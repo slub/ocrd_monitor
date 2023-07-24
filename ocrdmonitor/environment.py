@@ -1,5 +1,5 @@
 import functools
-from typing import Callable, NamedTuple, Type
+from typing import Callable, Type
 
 from ocrdbrowser import (
     DockerOcrdBrowser,
@@ -9,13 +9,7 @@ from ocrdbrowser import (
     SubProcessOcrdBrowserFactory,
 )
 from ocrdmonitor import database
-from ocrdmonitor.ocrdcontroller import OcrdController
-from ocrdmonitor.protocols import (
-    BrowserProcessRepository,
-    JobRepository,
-    RemoteServer,
-    Repositories,
-)
+from ocrdmonitor.protocols import RemoteServer, Repositories
 from ocrdmonitor.server.settings import Settings
 from ocrdmonitor.sshremote import SSHRemote
 

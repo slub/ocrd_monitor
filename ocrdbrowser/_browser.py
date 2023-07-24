@@ -1,7 +1,5 @@
 from __future__ import annotations
-import asyncio
 
-from os import path
 from typing import AsyncContextManager, Protocol
 
 

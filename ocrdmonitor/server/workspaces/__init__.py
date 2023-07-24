@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.templating import Jinja2Templates
 
-from ocrdbrowser import OcrdBrowserFactory
 from ocrdmonitor.protocols import BrowserProcessRepository, Environment
 
 from ._launchroutes import register_launchroutes

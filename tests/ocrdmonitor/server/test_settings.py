@@ -1,16 +1,13 @@
 import os
-from typing import Any, Literal, Type
+from typing import Any
 from unittest.mock import patch
 
-import pytest
-from ocrdbrowser import DockerOcrdBrowserFactory, SubProcessOcrdBrowserFactory
 from ocrdmonitor.server.settings import (
     OcrdBrowserSettings,
     OcrdControllerSettings,
     OcrdLogViewSettings,
     Settings,
 )
-
 
 EXPECTED = Settings(
     db_connection_string="user@mongo:mongodb:1234",

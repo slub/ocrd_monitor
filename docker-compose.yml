@@ -19,7 +19,7 @@ services:
     environment:
       MONITOR_PORT_LOG: ${MONITOR_PORT_LOG}
       CONTROLLER: "${CONTROLLER_HOST}:${CONTROLLER_PORT_SSH}"
-      DB_CONNECTION: "mongodb://${DB_ROOT_USER:-root}:${DB_ROOT_PASSWORD:-root_password}@ocrd-database:27017"
+      MONITOR_DB_CONNECTION: "mongodb://${MONITOR_DB_ROOT_USER:-root}:${MONITOR_DB_ROOT_PASSWORD:-root_password}@ocrd-database:27017"
 
     ports:
       - ${MONITOR_PORT_WEB}:5000

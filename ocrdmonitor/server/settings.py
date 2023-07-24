@@ -63,7 +63,7 @@ class OcrdBrowserSettings(BaseModel):
 
 
 class Settings(BaseSettings):
-    db_connection_string: str
+    monitor_db_connection_string: str
 
     ocrd_browser: OcrdBrowserSettings
     ocrd_controller: OcrdControllerSettings

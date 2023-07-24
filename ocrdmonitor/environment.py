@@ -30,7 +30,7 @@ class ProductionEnvironment:
         self.settings = settings
 
     async def repositories(self) -> Repositories:
-        await database.init(self.settings.db_connection_string)
+        await database.init(self.settings.monitor_db_connection_string)
         restoring_factory = RestoringFactories[self.settings.ocrd_browser.mode]
         return Repositories(
             database.MongoBrowserProcessRepository(restoring_factory),

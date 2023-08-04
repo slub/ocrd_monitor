@@ -53,13 +53,13 @@ services:
       - db-volume:/data/db
 
 
-  mongo-express:
+  ocrd-database-management:
     image: mongo-express:latest
     depends_on:
       ocrd-database:
         condition: service_started
     ports:
-      - ${MONITOR_PORT_DBE:-8081}:8081
+      - ${MONITOR_PORT_DBM:-8081}:8081
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONITOR_DB_ROOT_USER:-root}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONITOR_DB_ROOT_PASSWORD:-root_password}

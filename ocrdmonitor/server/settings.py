@@ -4,7 +4,9 @@ import functools
 from pathlib import Path
 from typing import Callable, Literal, Type
 
-from pydantic import BaseModel, BaseSettings, validator
+from pydantic import BaseModel, validator
+
+from pydantic_settings import BaseSettings
 
 from ocrdbrowser import (
     DockerOcrdBrowser,

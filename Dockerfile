@@ -23,7 +23,8 @@ RUN apt-get update \
     libgtksourceview-3.0-dev libgirepository1.0-dev gir1.2-webkit2-4.0 \
     python3-dev pkg-config cmake dnsutils \
     && pip3 install -U setuptools wheel \
-    && pip3 install browse-ocrd
+    && pip3 install browse-ocrd \
+    && pip3 install pydantic-settings
 
 # MONITOR_PORT_LOG
 EXPOSE 8080

@@ -1,6 +1,7 @@
 *~
 authorized_keys
 __pycache__/
+__pypackages__/
 .python-version
 .pdm-python
 .pdm.lock

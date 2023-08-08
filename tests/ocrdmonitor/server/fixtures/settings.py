@@ -19,7 +19,6 @@ def create_settings() -> Settings:
             port_range=(9000, 9100),
         ),
         ocrd_controller=OcrdControllerSettings(
-            job_dir=JOB_DIR,
             host="",
             user="",
         ),

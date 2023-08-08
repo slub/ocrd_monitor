@@ -10,8 +10,6 @@ authors = [
     { name = "Robert Sachunsky", email = "robert.sachunsky@slub-dresden.de" },
 ]
 dependencies = [
-    "pydantic[dotenv]>=1.10.6",
-    "pydantic[dotenv]",
     "fastapi>=0.95.0",
     "Jinja2>=3.1.2",
     "websockets>=10.4",
@@ -19,6 +17,7 @@ dependencies = [
     "httpx>=0.23.3",
     "beanie>=1.18.0",
     "pydantic-settings>=2.0.2",
+    "pydantic>=2.1.1",
 ]
 requires-python = ">=3.10"
 license = { text = "MIT" }

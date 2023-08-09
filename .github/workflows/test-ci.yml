@@ -51,7 +51,9 @@ jobs:
           cache: 'pip'
 
       - name: Install OCR-D Browser
-        run: pip install browse-ocrd
+        run: |
+          pip install -U setuptools wheel 
+          pip install browse-ocrd
 
       - name: Build browse-ocrd Docker image
         run: make build-browse-ocrd-docker

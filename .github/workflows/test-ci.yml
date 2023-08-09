@@ -52,6 +52,7 @@ jobs:
 
       - name: Install OCR-D Browser
         run: |
+          sudo apt install libgirepository1.0-dev
           pip install -U setuptools wheel 
           pip install browse-ocrd
 

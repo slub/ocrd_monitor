@@ -9,11 +9,9 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.decorators import use_custom_repository
 from tests.ocrdmonitor.server.fixtures.environment import (
     DevEnvironment,
     Fixture,
-    RepositoryInitializer,
 )
 from tests.ocrdmonitor.server.fixtures.settings import WORKSPACE_DIR
 from tests.testdoubles import (
@@ -60,16 +58,14 @@ def test__workspaces__shows_the_workspace_names_starting_from_workspace_root(
     assert set(texts) == {"a_workspace", "another workspace", "nested/workspace"}
 
 
-@use_custom_repository
+@pytest.mark.asyncio
 async def test__browse_workspace__passes_full_workspace_path_to_ocrdbrowser(
-    repository: RepositoryInitializer,
+    repository_fixture: Fixture,
 ) -> None:
     workspace = "a_workspace"
     full_workspace = str(WORKSPACE_DIR / workspace)
     browser = BrowserSpy()
-    fixture = (
-        Fixture().with_repository_type(repository).with_browser_type(lambda: browser)
-    )
+    fixture = repository_fixture.with_browser_type(lambda: browser)
 
     async with fixture as env:
         response = open_workspace(env.app, workspace)

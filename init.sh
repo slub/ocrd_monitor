@@ -28,4 +28,4 @@ export OCRD_CONTROLLER__USER=admin
 export OCRD_CONTROLLER__KEYFILE=~/.ssh/id_rsa
 
 cd /usr/local/ocrd-monitor
-uvicorn --host 0.0.0.0 --port 5000 "ocrdmonitor.main:app"
+pdm run monitor

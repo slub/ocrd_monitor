@@ -39,7 +39,15 @@ COPY pyproject.toml /usr/local/ocrd-monitor/
 COPY noxfile.py /usr/local/ocrd-monitor/
 COPY tests /usr/local/ocrd-monitor/tests
 
-RUN pip install -e /usr/local/ocrd-monitor
+# RUN python3 -m venv /.venv && \
+#     . /.venv/bin/activate && \
+#     pip3 install -e /usr/local/ocrd-monitor
+
+RUN curl -sSL https://pdm.fming.dev/install-pdm.py | python3 - 
+ENV PATH="/root/.local/bin:${PATH}"
+
+WORKDIR /usr/local/ocrd-monitor
+RUN pdm install
 
 WORKDIR /
 CMD ["/init.sh", "/data"]

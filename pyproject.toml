@@ -49,6 +49,7 @@ markers = [
 [tool.pdm.scripts]
 test = "pytest tests -m 'not integration'"
 test-integration = "pytest tests"
+monitor = "uvicorn --host 0.0.0.0 --port 5000 'ocrdmonitor.main:app'"
 
 [[tool.mypy.overrides]]
 module = ["testcontainers.*", "motor.motor_asyncio"]

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Iterable
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.templating import Jinja2Templates
 
 from ocrdmonitor.ocrdcontroller import OcrdController
-from ocrdmonitor.ocrdjob import OcrdJob
 from ocrdmonitor.processstatus import ProcessStatus
+from ocrdmonitor.protocols import Environment, OcrdJob, Repositories
 
 
 @dataclass
@@ -39,12 +39,19 @@ def wrap_in_running_job_type(
     return running_jobs
 
 
-def create_jobs(templates: Jinja2Templates, controller: OcrdController) -> APIRouter:
+def create_jobs(
+    templates: Jinja2Templates,
+    environment: Environment,
+) -> APIRouter:
     router = APIRouter(prefix="/jobs")
+    controller = OcrdController(environment.controller_server())
 
     @router.get("/", name="jobs")
-    async def jobs(request: Request) -> Response:
-        jobs = controller.get_jobs()
+    async def jobs(
+        request: Request, repositories: Repositories = Depends(environment.repositories)
+    ) -> Response:
+        job_repository = repositories.ocrd_jobs
+        jobs = await job_repository.find_all()
         running, completed = split_into_running_and_completed(jobs)
 
         job_status = [await controller.status_for(job) for job in running]

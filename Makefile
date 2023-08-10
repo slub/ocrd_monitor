@@ -10,6 +10,11 @@ build:
 pull:
 	docker pull $(TAGNAME)
 
+
+build-browse-ocrd-docker:
+	docker build -t ocrd-browser:latest -f docker-browse-ocrd/Dockerfile docker-browse-ocrd
+
+
 define HELP
 cat <<"EOF"
 Targets:
@@ -68,7 +73,7 @@ test:
 	{ echo set -e; \
 	echo cd /usr/local/ocrd-monitor/; \
 	echo pip install nox; \
-	echo "nox -- -m 'not needs_docker'"; } | \
+	echo "nox"; } | \
 	docker run --rm -i \
 	$(TAGNAME) bash
 

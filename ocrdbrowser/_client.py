@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from types import TracebackType
 from typing import AsyncContextManager, Type, cast
 
@@ -66,9 +68,14 @@ class HttpBrowserClient:
         self.address = address
 
     async def get(self, resource: str) -> bytes:
-        async with httpx.AsyncClient(base_url=self.address) as client:
-            response = await client.get(resource)
-            return response.content
+        try:
+            async with httpx.AsyncClient(base_url=self.address) as client:
+                response = await client.get(resource)
+                return response.content
+        except Exception as ex:
+            logging.error(f"Tried to connect to {self.address}")
+            logging.error(f"Requested resource {resource}")
+            raise ConnectionError from ex
 
     def open_channel(self) -> AsyncContextManager[Channel]:
         return WebSocketChannel(self.address + "/socket")

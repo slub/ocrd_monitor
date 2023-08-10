@@ -50,10 +50,20 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install dependencies using pip
-        run: pip install -e ".[dev]"
+      - name: Install native OCR-D Browser
+        run: |
+          sudo apt install libgirepository1.0-dev
+          pip install -U setuptools wheel 
+          pip install browse-ocrd
+
+      - name: Build OCR-D Browser Docker image
+        run: make build-browse-ocrd-docker
+
+      - name: Install project dependencies
+        run: |
+          pip install pdm
+          pdm install -G dev
 
       - name: Testing using pytest
         run: |
-          pip install pytest-clarity # coloured diff output
-          pytest tests
+          pdm run pytest tests

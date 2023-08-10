@@ -25,6 +25,13 @@ class BackgroundProcess:
     def is_running(self) -> bool:
         return self._process is not None and self._process.is_alive()
 
+    @property
+    def pid(self) -> int | None:
+        if not self._process:
+            return None
+
+        return self._process.pid
+
     def launch(self) -> None:
         if self.is_running:
             return

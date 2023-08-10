@@ -1,9 +1,8 @@
 import os
-from typing import Any, Literal, Type
+from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
-import pytest
-from ocrdbrowser import DockerOcrdBrowserFactory, SubProcessOcrdBrowserFactory
 from ocrdmonitor.server.settings import (
     OcrdBrowserSettings,
     OcrdControllerSettings,
@@ -11,19 +10,18 @@ from ocrdmonitor.server.settings import (
     Settings,
 )
 
-
 EXPECTED = Settings(
+    monitor_db_connection_string="user@mongo:mongodb:1234",
     ocrd_browser=OcrdBrowserSettings(
         mode="native",
-        workspace_dir="path/to/workdir",
+        workspace_dir=Path("path/to/workdir"),
         port_range=(9000, 9100),
     ),
     ocrd_controller=OcrdControllerSettings(
-        job_dir="path/to/jobdir",
         host="controller.ocrdhost.com",
         user="controller_user",
         port=22,
-        keyfile=".ssh/id_rsa",
+        keyfile=Path(".ssh/id_rsa"),
     ),
     ocrd_logview=OcrdLogViewSettings(
         port=22,
@@ -39,32 +37,18 @@ def expected_to_env() -> dict[str, str]:
         }
 
     return dict(
-        **to_dict("BROWSER", EXPECTED.ocrd_browser.dict()),
-        **to_dict("CONTROLLER", EXPECTED.ocrd_controller.dict()),
-        **to_dict("LOGVIEW", EXPECTED.ocrd_logview.dict()),
+        MONITOR_DB_CONNECTION_STRING=EXPECTED.monitor_db_connection_string,
+        **to_dict("BROWSER", EXPECTED.ocrd_browser.model_dump()),
+        **to_dict("CONTROLLER", EXPECTED.ocrd_controller.model_dump()),
+        **to_dict("LOGVIEW", EXPECTED.ocrd_logview.model_dump()),
     )
 
 
 @patch.dict(os.environ, expected_to_env())
 def test__can_parse_env() -> None:
+    import pprint
+
+    pprint.pprint(expected_to_env())
     sut = Settings()
 
     assert sut == EXPECTED
-
-
-@pytest.mark.parametrize(
-    argnames=["mode", "factory_type"],
-    argvalues=[
-        ("native", SubProcessOcrdBrowserFactory),
-        ("docker", DockerOcrdBrowserFactory),
-    ],
-)
-@patch.dict(os.environ, expected_to_env())
-def test__browser_settings__produces_matching_factory_for_selected_mode(
-    mode: Literal["native"] | Literal["docker"], factory_type: Type[Any]
-) -> None:
-    sut = Settings()
-    sut.ocrd_browser.mode = mode
-
-    actual = sut.ocrd_browser.factory()
-    assert isinstance(actual, factory_type)

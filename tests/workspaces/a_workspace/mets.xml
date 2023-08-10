@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mets xmlns="http://www.loc.gov/METS/"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd">
+  <metsHdr>
+    <agent ROLE="CREATOR" TYPE="ORGANIZATION">
+      <name>Your Organization Name</name>
+    </agent>
+    <altRecordID>UniqueIdentifier123</altRecordID>
+  </metsHdr>
+  <structMap>
+    <!-- <div>
+      <div>
+        <fptr FILEID="file1" />
+      </div>
+    </div> -->
+  </structMap>
+  <fileSec>
+    <!-- <fileGrp>
+      <file FILEID="file1">
+        <FLocat LOCTYPE="URL" xlink:href="path/to/your/file.ext" />
+      </file>
+    </fileGrp> -->
+  </fileSec>
+</mets>

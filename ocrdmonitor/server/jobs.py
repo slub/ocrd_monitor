@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 from fastapi import APIRouter, Depends, Request, Response, status
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 

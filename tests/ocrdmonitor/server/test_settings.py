@@ -7,6 +7,7 @@ from ocrdmonitor.server.settings import (
     OcrdBrowserSettings,
     OcrdControllerSettings,
     OcrdLogViewSettings,
+    OcrdManagerSettings,
     Settings,
 )
 
@@ -25,6 +26,9 @@ EXPECTED = Settings(
     ),
     ocrd_logview=OcrdLogViewSettings(
         port=22,
+    ),
+    ocrd_manager=OcrdManagerSettings(
+        url='',
     ),
 )
 

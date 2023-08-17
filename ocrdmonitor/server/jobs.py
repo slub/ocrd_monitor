@@ -86,7 +86,7 @@ def create_jobs(
             async with httpx.AsyncClient() as client:
                 response = await client.get(environment.settings.ocrd_manager.url + f"/cancel_job/{job_pid}")
                 response.raise_for_status()
-        except httpx.HTTPError as exc:
+        except httpx.HTTPStatusError as exc:
             status_code=status.HTTP_409_CONFLICT
             message="Job could not be canceled."
             print(f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.")

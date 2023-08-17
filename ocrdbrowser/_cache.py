@@ -1,4 +1,5 @@
 from datetime import datetime
+import functools
 from pathlib import Path
 from typing import Callable, TypeVar
 
@@ -13,15 +14,15 @@ def path_cache(fn: Callable[[Path], T]) -> Callable[[Path], T]:
         pathcache[path] = new_value, path.stat().st_mtime
         return new_value
 
+    @functools.wraps(fn)
     def wrapper(path: Path) -> T:
         if path not in pathcache:
             return cache(path)
 
         value, saved_timestamp = pathcache[path]
-        saved_datetime = datetime.fromtimestamp(saved_timestamp)
-        last_modified = datetime.fromtimestamp(path.stat().st_mtime)
+        last_modified = path.stat().st_mtime
 
-        if last_modified > saved_datetime:
+        if last_modified > saved_timestamp:
             return cache(path)
 
         return value

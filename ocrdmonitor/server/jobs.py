@@ -4,13 +4,16 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterable
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from ocrdmonitor.ocrdcontroller import OcrdController
 from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.protocols import Environment, OcrdJob, Repositories
 
+import httpx
 
 @dataclass
 class RunningJob:
@@ -69,8 +72,25 @@ def create_jobs(
                 "completed_jobs": sorted(
                     completed,
                     key=lambda x: x.time_terminated or now,
-                ),
+                )
             },
         )
+    
+    @router.get("/kill/{job_pid}", name="jobs.kill")
+    async def kill(
+        job_pid: int
+    ) -> Response:
+        status_code=status.HTTP_200_OK
+        message="Job successfully canceled"
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(environment.settings.ocrd_manager.url + f"/cancel_job/{job_pid}")
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            status_code=status.HTTP_409_CONFLICT
+            message="Job could not be canceled."
+            print(f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.")
+
+        return JSONResponse(status_code=status_code,content=dict(message = message))
 
     return router

@@ -10,8 +10,10 @@
 
 {% block content %}
 <script>
-    function killjob(pid) {
-        console.log(fetch(`http://ocrd-manager:4004/cancel_job/${pid}`));
+    async function handleAsyncRequest(url) {
+        fetch(url)
+            .then(response => response.json())
+            .then(response => console.log(response.message))
     }
 </script>
 <h2 class="title">Active Jobs</h2>
@@ -36,13 +38,16 @@
             <td>{{ job.ocrd_job.time_created }}</td>
             <td>{{ job.ocrd_job.task_id }}</td>
             <td>{{ job.ocrd_job.process_id }}</td>
-            <td><a href="{{ url_for('workflows.detail', path=job.ocrd_job.workflow_file) }}">{{ job.ocrd_job.workflow }}</a></td>
+            <td><a href="{{ url_for('workflows.detail', path=job.ocrd_job.workflow_file) }}">{{ job.ocrd_job.workflow
+                    }}</a></td>
             <td>{{ job.process_status.pid }}</td>
             <td>{{ job.process_status.state }}</td>
             <td>{{ job.process_status.percent_cpu }}</td>
             <td>{{ job.process_status.memory }}</td>
             <td>{{ job.process_status.cpu_time }}</td>
-            <td><button onclick="killjob({{ job.process_status.pid }})">Kill!</button></td>
+            <td><button
+                    onclick="handleAsyncRequest('{{ url_for('jobs.kill', job_pid=job.process_status.pid ) }}')">Kill!</button>
+            </td>
         </tr>
         {% endfor %}
     </tbody>

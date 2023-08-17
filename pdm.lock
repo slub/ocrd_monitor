@@ -6,7 +6,7 @@ groups = ["default", "dev", "nox"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:023cc17c9817fa1cea1a1f9eeb9f5706ef65e52bd66de73d91edf198e2fb3c6d"
+content_hash = "sha256:5ecb202e917b7236ea722a177797d42d3e722a1bb6e6a224877a42e23f37b085"
 
 [[package]]
 name = "annotated-types"

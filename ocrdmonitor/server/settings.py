@@ -40,10 +40,11 @@ class OcrdControllerSettings(BaseSettings):
     port: int = 22
     keyfile: Path = Path.home() / ".ssh" / "id_rsa"
 
+class OcrdManagerSettings(BaseSettings):
+    url: str
 
 class OcrdLogViewSettings(BaseSettings):
     port: int
-
 
 class OcrdBrowserSettings(BaseSettings):
     workspace_dir: Path
@@ -79,6 +80,7 @@ class Settings(BaseSettings):
     ocrd_browser: OcrdBrowserSettings
     ocrd_controller: OcrdControllerSettings
     ocrd_logview: OcrdLogViewSettings
+    ocrd_manager: OcrdManagerSettings
 
     @classmethod
     def settings_customise_sources(

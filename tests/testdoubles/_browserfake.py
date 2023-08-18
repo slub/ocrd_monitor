@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-
 from ocrdbrowser import HttpBrowserClient, OcrdBrowserClient
 
 from ._backgroundprocess import BackgroundProcess

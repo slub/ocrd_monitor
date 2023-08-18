@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from types import TracebackType
 from typing import (
     Any,
@@ -82,8 +83,13 @@ class Fixture:
         self.remote_controller: RemoteServer = RemoteDummy()
         self.existing_browsers: list[BrowserTestDouble] = []
         self.session_id = ""
+        self.clock = lambda: datetime.now()
 
         self._open_contexts: list[ContextManager[Any] | AsyncContextManager[Any]] = []
+
+    def with_clock(self, clock: Callable[[], datetime]) -> Self:
+        self.clock = clock
+        return self
 
     def with_browser_type(self, browser_constructor: BrowserConstructor) -> Self:
         self.browser_constructor = browser_constructor
@@ -123,7 +129,7 @@ class Fixture:
 
     async def _init_repos(self, registry: BrowserRegistry) -> Repositories:
         restoring_factory = RestoringRegistryBrowserFactory(registry)
-        repo_ctx = self.repo_constructor(restoring_factory)
+        repo_ctx = self.repo_constructor(restoring_factory, self.clock)
         self._open_contexts.append(repo_ctx)
         repositories = await repo_ctx.__aenter__()
         return repositories

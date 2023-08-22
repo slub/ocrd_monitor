@@ -12,11 +12,12 @@ from tests.testdoubles import InMemoryBrowserProcessRepository, InMemoryJobRepos
 @asynccontextmanager
 async def mongodb_repository(
     restoring_factory: BrowserRestoringFactory,
+    clock: Callable[[], datetime] = datetime.now,
 ) -> AsyncIterator[Repositories]:
     with MongoDbContainer() as container:
         await database.init(container.get_connection_url(), force_initialize=True)
         yield Repositories(
-            database.MongoBrowserProcessRepository(restoring_factory),
+            database.MongoBrowserProcessRepository(restoring_factory, clock),
             database.MongoJobRepository(),
         )
 

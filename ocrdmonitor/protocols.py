@@ -33,7 +33,7 @@ class BrowserProcessRepository(Protocol):
     async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
         ...
 
-    async def last_access_time_for(self, browser: OcrdBrowser) -> datetime:
+    async def browsers_by_access_time(self) -> list[tuple[OcrdBrowser, datetime]]:
         ...
 
     async def count(self) -> int:

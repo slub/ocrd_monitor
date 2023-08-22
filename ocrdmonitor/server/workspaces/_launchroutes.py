@@ -40,9 +40,9 @@ def register_launchroutes(
         session_id: str = Cookie(),
     ) -> Response:
         full_path = full_workspace(workspace)
-        existing_browsers = await repository.find(owner=session_id, workspace=full_path)
+        existing_browser = await repository.first(owner=session_id, workspace=full_path)
 
-        if not existing_browsers:
+        if not existing_browser:
             browser = await factory(session_id, full_path)
             await repository.insert(browser)
 

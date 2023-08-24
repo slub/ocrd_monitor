@@ -23,6 +23,7 @@ class MongoOcrdJob(Document):
     controller_address: str
 
     class Settings:
+        name = "OcrdJob"
         indexes = [
             pymongo.IndexModel(
                 [

@@ -91,7 +91,7 @@ async def test__kill_ocrd_job(
     httpx_mock: HTTPXMock,
     status_code: int,
     message: str,
-    httpx_mock_status_code,
+    httpx_mock_status_code: int,
 ) -> None:
     pid = 1234
     async with repository_fixture as env:
@@ -106,7 +106,7 @@ async def test__kill_ocrd_job(
 
 
 @pytest.fixture
-def non_mocked_hosts() -> list:
+def non_mocked_hosts() -> list[str]:
     return ["testserver"]
 
 

@@ -4,8 +4,11 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import pytest
+from fastapi import status
 from httpx import Response
+import json
+import pytest
+from pytest_httpx import HTTPXMock
 
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.protocols import OcrdJob
@@ -69,6 +72,42 @@ async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resourc
 
         assert response.is_success
         assert_lists_running_job(job, expected_status, response)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    argnames=["status_code", "message", "httpx_mock_status_code"],
+    argvalues=[
+        (status.HTTP_200_OK, "Job successfully canceled", status.HTTP_200_OK),
+        (
+            status.HTTP_409_CONFLICT,
+            "Job could not be canceled.",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ),
+    ],
+)
+async def test__kill_ocrd_job(
+    repository_fixture: Fixture,
+    httpx_mock: HTTPXMock,
+    status_code: int,
+    message: str,
+    httpx_mock_status_code,
+) -> None:
+    pid = 1234
+    async with repository_fixture as env:
+        httpx_mock.add_response(
+            method="GET",
+            url=f"{env.settings.ocrd_manager.url}/cancel_job/{pid}",
+            status_code=httpx_mock_status_code,
+        )
+        response = env.app.get(f"/jobs/kill/{pid}/")
+        assert response.status_code == status_code
+        assert json.loads(response.content)["message"] == message
+
+
+@pytest.fixture
+def non_mocked_hosts() -> list:
+    return ["testserver"]
 
 
 def make_status(pid: int) -> ProcessStatus:

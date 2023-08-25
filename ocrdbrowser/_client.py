@@ -71,8 +71,7 @@ class HttpBrowserClient:
         try:
 
             async with httpx.AsyncClient(
-                base_url=self.address,
-                timeout=httpx.Timeout(5.0, connect=60.0)
+                base_url=self.address
             ) as client:
                 response = await client.get(resource)
                 return response.content

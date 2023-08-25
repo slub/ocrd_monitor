@@ -18,7 +18,7 @@ def test__a_workspace_without_mets_xml_is_invalid() -> None:
 
 
 def test__list_workspaces__returns_valid_workspaces() -> None:
-    assert set(workspace.list_all(str(WORKSPACES))) == {
+    assert set(workspace.list_all(WORKSPACES)) == {
         str(WORKSPACES / "a_workspace"),
         str(WORKSPACES / "another workspace"),
         str(WORKSPACES / "nested" / "workspace"),

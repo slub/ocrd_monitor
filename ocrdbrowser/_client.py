@@ -5,6 +5,8 @@ import logging
 from types import TracebackType
 from typing import AsyncContextManager, Type, cast
 
+import time 
+
 import httpx
 from websockets import client
 from websockets.exceptions import ConnectionClosed
@@ -67,7 +69,7 @@ class HttpBrowserClient:
     def __init__(self, address: str) -> None:
         self.address = address
 
-    async def get(self, resource: str) -> bytes:
+    async def get(self, resource: str, retry: bool=True) -> bytes:
         try:
 
             async with httpx.AsyncClient(
@@ -75,6 +77,14 @@ class HttpBrowserClient:
             ) as client:
                 response = await client.get(resource)
                 return response.content
+        except httpx.RemoteProtocolError as rpe:
+            if retry :    
+                time.sleep(10)
+                return await self.get(resource, False)
+            else :
+                logging.error(f"Tried to connect to {self.address}")
+                logging.error(f"Requested resource {resource}")
+                raise ConnectionError from rpe 
         except Exception as ex:
             logging.error(f"Tried to connect to {self.address}")
             logging.error(f"Requested resource {resource}")

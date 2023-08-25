@@ -66,12 +66,13 @@ class WebSocketChannel:
 class HttpBrowserClient:
     def __init__(self, address: str) -> None:
         self.address = address
+
     async def get(self, resource: str) -> bytes:
         try:
 
             async with httpx.AsyncClient(
                 base_url=self.address,
-                timeout=httpx.Timeout(5.0, connect=15.0)
+                timeout=httpx.Timeout(5.0, connect=60.0)
             ) as client:
                 response = await client.get(resource)
                 return response.content

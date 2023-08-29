@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+import asyncio 
 import logging
 
 from types import TracebackType
 from typing import AsyncContextManager, Type, cast
-
-import time 
 
 import httpx
 from websockets import client
@@ -77,15 +76,11 @@ class HttpBrowserClient:
             ) as client:
                 response = await client.get(resource)
                 return response.content
-        except httpx.RemoteProtocolError as rpe:
-            if retry :    
-                time.sleep(10)
-                return await self.get(resource, False)
-            else :
-                logging.error(f"Tried to connect to {self.address}")
-                logging.error(f"Requested resource {resource}")
-                raise ConnectionError from rpe 
         except Exception as ex:
+            if isinstance(ex, httpx.RemoteProtocolError) and retry :    
+                await asyncio.sleep(5)
+                return await self.get(resource, False)
+
             logging.error(f"Tried to connect to {self.address}")
             logging.error(f"Requested resource {resource}")
             raise ConnectionError from ex

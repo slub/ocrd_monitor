@@ -68,5 +68,5 @@ jobs:
         run: pdm run pytest tests
 
       - name: Setup upterm session when failure
-        if: ${{ failure() && github.event_name == 'workflow_dispatch' }}
+        if: ${{ failure() }}
         uses: lhotari/action-upterm@v1  

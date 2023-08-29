@@ -66,3 +66,7 @@ jobs:
 
       - name: Testing using pytest
         run: pdm run pytest tests
+
+      - name: Setup upterm session when failure
+        if: ${{ failure() }}
+        uses: lhotari/action-upterm@v1  

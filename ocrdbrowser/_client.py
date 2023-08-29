@@ -77,6 +77,8 @@ class HttpBrowserClient:
                 response = await client.get(resource)
                 return response.content
         except Exception as ex:
+            logging.info(f"is instance is {isinstance(ex, httpx.RemoteProtocolError)}")
+            logging.info(f"retry value is {retry}")
             if isinstance(ex, httpx.RemoteProtocolError) and retry :    
                 await asyncio.sleep(10)
                 return await self.get(resource, False)

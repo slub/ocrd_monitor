@@ -17,8 +17,9 @@ services:
     hostname: ${MONITOR_HOST}
 
     environment:
-      MONITOR_PORT_LOG: ${MONITOR_PORT_LOG}
       CONTROLLER: "${CONTROLLER_HOST}:${CONTROLLER_PORT_SSH}"
+      MANAGER_URL: "http://${MANAGER_HOST}:${MANAGER_PORT_WEB}"
+      MONITOR_PORT_LOG: ${MONITOR_PORT_LOG}
       MONITOR_DB_CONNECTION: "mongodb://${MONITOR_DB_ROOT_USER:-root}:${MONITOR_DB_ROOT_PASSWORD:-root_password}@ocrd-database:27017"
 
     ports:

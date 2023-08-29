@@ -4,6 +4,7 @@ from ocrdmonitor.server.settings import (
     OcrdBrowserSettings,
     OcrdControllerSettings,
     OcrdLogViewSettings,
+    OcrdManagerSettings,
     Settings,
 )
 
@@ -23,4 +24,5 @@ def create_settings() -> Settings:
             user="",
         ),
         ocrd_logview=OcrdLogViewSettings(port=8022),
+        ocrd_manager=OcrdManagerSettings(url="https://manager.ocrdhost.com")
     )

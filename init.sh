@@ -26,6 +26,7 @@ export OCRD_CONTROLLER__HOST=$CONTROLLER_HOST
 export OCRD_CONTROLLER__PORT=$CONTROLLER_PORT
 export OCRD_CONTROLLER__USER=admin
 export OCRD_CONTROLLER__KEYFILE=~/.ssh/id_rsa
+export OCRD_MANAGER__URL=$MANAGER_URL
 
 cd /usr/local/ocrd-monitor
 pdm run monitor

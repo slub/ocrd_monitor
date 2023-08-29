@@ -7,6 +7,7 @@ from ocrdmonitor.server.settings import (
     OcrdBrowserSettings,
     OcrdControllerSettings,
     OcrdLogViewSettings,
+    OcrdManagerSettings,
     Settings,
 )
 
@@ -26,6 +27,9 @@ EXPECTED = Settings(
     ocrd_logview=OcrdLogViewSettings(
         port=22,
     ),
+    ocrd_manager=OcrdManagerSettings(
+        url="https://manager.ocrdhost.com",
+    ),
 )
 
 
@@ -41,6 +45,7 @@ def expected_to_env() -> dict[str, str]:
         **to_dict("BROWSER", EXPECTED.ocrd_browser.model_dump()),
         **to_dict("CONTROLLER", EXPECTED.ocrd_controller.model_dump()),
         **to_dict("LOGVIEW", EXPECTED.ocrd_logview.model_dump()),
+        **to_dict("MANAGER", EXPECTED.ocrd_manager.model_dump()),
     )
 
 

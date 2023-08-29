@@ -79,7 +79,6 @@ class RemoteServer(Protocol):
     async def process_status(self, process_group: int) -> list[ProcessStatus]:
         ...
 
-
 class Repositories(NamedTuple):
     browser_processes: BrowserProcessRepository
     ocrd_jobs: JobRepository

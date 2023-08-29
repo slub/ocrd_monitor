@@ -153,4 +153,11 @@ def browser_command(workspace: str, broadway_pid: int) -> str:
     mets_path = workspace + "/mets.xml"
     kill_broadway = f"; kill {broadway_pid}"
     browse_ocrd = cast(str, which("browse-ocrd"))
-    return " ".join([browse_ocrd, mets_path, kill_broadway])
+    return " ".join(
+        [
+            browse_ocrd,
+            "-mr",
+            mets_path,
+            kill_broadway,
+        ]
+    )

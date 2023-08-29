@@ -1,3 +1,4 @@
+from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -69,6 +70,29 @@ class JobRepository(Protocol):
         ...
 
     async def find_all(self) -> list[OcrdJob]:
+        ...
+ 
+class OcrdWorkflowStatus(Enum):
+    PUBLISHED = 1
+    DRAFT = 2
+    TRASH = 3
+
+@dataclass(frozen=True)
+class OcrdWorkflow:
+    name: str
+    file: Path
+    status: OcrdWorkflowStatus
+
+    @property
+    def workflow(self) -> str:
+        return Path(self.workflow_file).name
+
+
+class WorkflowRepository(Protocol):
+    async def insert(self, workflow: OcrdWorkflow) -> None:
+        ...
+
+    async def find_all(self) -> list[OcrdWorkflow]:
         ...
 
 

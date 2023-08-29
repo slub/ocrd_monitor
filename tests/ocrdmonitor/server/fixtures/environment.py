@@ -117,6 +117,7 @@ class Fixture:
             _repositories=repositories,
             controller_remote=self.remote_controller,
         )
+
         self._init_app(env.app)
         return env
 
@@ -142,7 +143,6 @@ class Fixture:
         app.__enter__()
         if self.session_id:
             app.cookies["session_id"] = self.session_id
-
         self._open_contexts.append(app)
         return app
 

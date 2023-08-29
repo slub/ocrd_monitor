@@ -28,7 +28,7 @@ EXPECTED = Settings(
         port=22,
     ),
     ocrd_manager=OcrdManagerSettings(
-        url="",
+        url="https://manager.ocrdhost.com",
     ),
 )
 

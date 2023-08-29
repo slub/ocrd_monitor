@@ -10,7 +10,6 @@ from tests.testdoubles import BrowserFake, BrowserSpy
 from .environment import Fixture, RepositoryInitializer
 from .repository import inmemory_repository, mongodb_repository
 
-
 @pytest.fixture(
     params=[
         inmemory_repository,

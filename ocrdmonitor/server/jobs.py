@@ -13,6 +13,8 @@ from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.protocols import Environment, OcrdJob, Repositories
 
 import httpx
+import logging
+
 
 @dataclass
 class RunningJob:
@@ -71,25 +73,27 @@ def create_jobs(
                 "completed_jobs": sorted(
                     completed,
                     key=lambda x: x.time_terminated or now,
-                )
+                ),
             },
         )
-    
+
     @router.get("/kill/{job_pid}", name="jobs.kill")
-    async def kill(
-        job_pid: int
-    ) -> Response:
-        status_code=status.HTTP_200_OK
+    async def kill(job_pid: int) -> Response:
+        status_code = status.HTTP_200_OK
         message="Job successfully canceled"
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(environment.settings.ocrd_manager.url + f"/cancel_job/{job_pid}")
+                response = await client.get(
+                    environment.settings.ocrd_manager.url + f"/cancel_job/{job_pid}"
+                )
                 response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            status_code=status.HTTP_409_CONFLICT
-            message="Job could not be canceled."
-            print(f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.")
+            status_code = status.HTTP_409_CONFLICT
+            message = "Job could not be canceled."
+            logging.error(
+                f"Error response {exc.response.status_code} while requesting {exc.request.url!r}."
+            )
 
-        return JSONResponse(status_code=status_code,content=dict(message = message))
+        return JSONResponse(status_code=status_code, content=dict(message=message))
 
     return router

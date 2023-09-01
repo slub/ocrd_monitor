@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterator
 
+import time
 import pytest
 
 from ocrdbrowser._cache import path_cache
@@ -47,6 +48,9 @@ def test__when_cached_path_changes__calls_func_again() -> None:
         return call_count
 
     fn(TMPDIR)
+
+    time.sleep(1)
+
     TMPFILE.touch()
 
     fn(TMPDIR)

@@ -105,3 +105,10 @@ When opening a workspace OCR-D Monitor will launch a new `OcrdBrowser` instance 
 From there on it will proxy requests to the `/workspaces/view/<path>` endpoint to the browser instance.
 
 ![](docs/img/workspaces-endpoint.png)
+
+## Maintainers
+
+If you have any questions or encounter any problems, please do not hesitate to contact us.
+
+- [Robert Sachunsky](https://github.com/bertsky)
+- [Markus Weigelt](https://github.com/markusweigelt)

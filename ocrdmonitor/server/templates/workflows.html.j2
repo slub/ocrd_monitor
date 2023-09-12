@@ -5,5 +5,25 @@
 {% endblock %}
 
 {% block content %}
-  <pre>Liste von Workflows</pre>
+  <div class="columns">
+    <div class="column">
+      <div class="buttons is-right">
+        <a href="{{ url_for('workflows.create.form') }}" class="button is-primary">Create</a>
+      </div>
+    </div>
+  </div>
+  {% for workflow in workflows: %}
+      <div class="box">
+        <div class="columns">
+          <div class="column is-four-fifths">
+            <h2 class="subtitle" style="line-height: 2" >{{ workflow.name }}</h2>
+          </div>
+          <div class="column">
+            <div class="buttons is-right">
+              <a href="{{ url_for('workflows.view', workflow_id=workflow.id) }}" class="button">Detail</a>
+            </div>
+           </div>
+        </div>
+      </div>
+  {% endfor %}
 {% endblock %}

@@ -1,9 +1,16 @@
 {% extends 'base.html.j2' %}
 
 {% block headline %}
-  {% block title %}OCR-D Workflow{% endblock %}
+  {% block title %}{{ workflow.name }}{% endblock %}
 {% endblock %}
 
 {% block content %}
-  <pre>{{ workflow }}</pre>
+  <div class="columns">
+    <div class="column">
+      <div class="buttons is-right">
+        <a href="{{ url_for('workflows.edit.form', workflow_id=workflow.id) }}" class="button is-primary">Edit</a>
+      </div>
+    </div>
+  </div>
+  <pre>{{ workflow.name }}</pre>
 {% endblock %}

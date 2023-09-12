@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio 
 import logging
 
 from types import TracebackType
@@ -67,12 +68,21 @@ class HttpBrowserClient:
     def __init__(self, address: str) -> None:
         self.address = address
 
-    async def get(self, resource: str) -> bytes:
+    async def get(self, resource: str, retry: bool=True) -> bytes:
         try:
-            async with httpx.AsyncClient(base_url=self.address) as client:
+
+            async with httpx.AsyncClient(
+                base_url=self.address
+            ) as client:
                 response = await client.get(resource)
                 return response.content
         except Exception as ex:
+            logging.info(f"is instance is {isinstance(ex, httpx.RemoteProtocolError)}")
+            logging.info(f"retry value is {retry}")
+            if isinstance(ex, httpx.RemoteProtocolError) and retry :    
+                await asyncio.sleep(10)
+                return await self.get(resource, False)
+
             logging.error(f"Tried to connect to {self.address}")
             logging.error(f"Requested resource {resource}")
             raise ConnectionError from ex

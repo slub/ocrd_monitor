@@ -4,12 +4,19 @@
   {% block title %}Workspaces{% endblock %}
 {% endblock %}
 {% block content %}
-    <ul>
-        {% for workspace in workspaces %}
-        <li>
-            <a href="{{ url_for('workspaces.open', workspace=workspace)}}">{{ workspace }}</a>
-        </li>
-        {% endfor %}
-    </ul>
+    {% for workspace in workspaces %}
+    <div class="box">
+        <div class="columns">
+            <div class="column is-four-fifths">
+            <h2 class="subtitle" style="line-height: 2" >{{ workspace }}</h2>
+            </div>
+            <div class="column">
+            <div class="buttons is-right">
+                <a href="{{ url_for('workspaces.open', workspace=workspace)}}" class="button">Open</a>
+            </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}    
 </body>
 {% endblock %}

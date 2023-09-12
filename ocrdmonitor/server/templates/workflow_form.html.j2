@@ -1,0 +1,17 @@
+{% extends 'base.html.j2' %}
+
+{% block headline %}
+  {% block title %}Workflow {% if workflow.id is defined %}Bearbeiten{% else %}Anlegen{% endif %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+  <form>
+    <input type="hidden" value="{{workflow.id|default("")}}" >
+    <div class="field">
+      <label class="label">Name</label>
+      <div class="control">
+        <input class="input" type="text" placeholder="Text input" value="{{workflow.name|default("")}}" >
+      </div>
+    </div>
+  </form>
+{% endblock %}

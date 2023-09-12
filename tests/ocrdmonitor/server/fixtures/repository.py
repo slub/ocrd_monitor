@@ -17,6 +17,7 @@ async def mongodb_repository(
         yield Repositories(
             database.MongoBrowserProcessRepository(restoring_factory),
             database.MongoJobRepository(),
+            database.MongoWorkflowRepository()
         )
 
 

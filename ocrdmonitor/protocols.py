@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Collection, NamedTuple, Protocol
 
+from pydantic import BaseModel
 from ocrdbrowser import OcrdBrowser, OcrdBrowserFactory
 from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.server.settings import Settings
@@ -78,15 +79,9 @@ class OcrdWorkflowStatus(Enum):
     TRASH = 3
 
 @dataclass(frozen=True)
-class OcrdWorkflow:
+class OcrdWorkflow(BaseModel):
+    id: str
     name: str
-    file: Path
-    status: OcrdWorkflowStatus
-
-    @property
-    def workflow(self) -> str:
-        return Path(self.workflow_file).name
-
 
 class WorkflowRepository(Protocol):
     async def insert(self, workflow: OcrdWorkflow) -> None:
@@ -95,6 +90,8 @@ class WorkflowRepository(Protocol):
     async def find_all(self) -> list[OcrdWorkflow]:
         ...
 
+    async def get(self) -> OcrdWorkflow:
+        ...
 
 class RemoteServer(Protocol):
     async def read_file(self, path: str) -> str:
@@ -103,10 +100,10 @@ class RemoteServer(Protocol):
     async def process_status(self, process_group: int) -> list[ProcessStatus]:
         ...
 
-
 class Repositories(NamedTuple):
     browser_processes: BrowserProcessRepository
     ocrd_jobs: JobRepository
+    ocrd_workflows: WorkflowRepository
 
 
 class Environment(Protocol):

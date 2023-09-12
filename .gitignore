@@ -5,3 +5,5 @@ __pypackages__/
 .python-version
 .pdm-python
 .pdm.lock
+.idea
+tests/ocrdmonitor/server/keys/

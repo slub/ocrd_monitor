@@ -35,6 +35,7 @@ class ProductionEnvironment:
         return Repositories(
             database.MongoBrowserProcessRepository(restoring_factory),
             database.MongoJobRepository(),
+            database.MongoWorkflowRepository()
         )
 
     def browser_factory(self) -> OcrdBrowserFactory:

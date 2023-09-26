@@ -33,6 +33,9 @@ class BrowserProcessRepository(Protocol):
     async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
         ...
 
+    async def update_access_time(self, browser: OcrdBrowser) -> None:
+        ...
+
     async def browsers_accessed_before(self, time: datetime) -> list[OcrdBrowser]:
         ...
 

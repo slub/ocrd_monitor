@@ -101,14 +101,24 @@ class MongoBrowserProcessRepository:
         if result is None:
             return None
 
-        result.last_access_time = self._clock()
-        await result.save()
         return self._restoring_factory(
             result.owner,
             result.workspace,
             result.address,
             result.process_id,
         )
+
+    async def update_access_time(self, browser: OcrdBrowser) -> None:
+        result = await BrowserProcess.find_one(
+            BrowserProcess.owner == browser.owner(),
+            BrowserProcess.workspace == browser.workspace(),
+        )
+
+        if result is None:
+            return
+
+        result.last_access_time = self._clock()
+        await result.save()
 
     async def browsers_accessed_before(self, time: datetime) -> list[OcrdBrowser]:
         return [

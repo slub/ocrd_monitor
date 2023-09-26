@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import timedelta
 
 import functools
 import os
@@ -50,6 +51,7 @@ class OcrdBrowserSettings(BaseSettings):
     workspace_dir: Path
     mode: Literal["native", "docker"] = "native"
     port_range: tuple[int, int]
+    timeout: timedelta
 
     @field_validator("port_range", mode="before")
     @classmethod
@@ -102,9 +104,7 @@ def getargs(field_name: str, model_type: Type[BaseModel]) -> dict[str, str]:
         model_field_name: f"{field_name}__{model_field_name}".upper()
         for model_field_name in model_type.model_fields
     }
-    return {
-        field: os.environ.get(var, "") for field, var in fields_to_env.items()
-    }
+    return {field: os.environ.get(var, "") for field, var in fields_to_env.items()}
 
 
 class OcrdEnvSource(EnvSettingsSource):

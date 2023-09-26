@@ -42,7 +42,9 @@ def register_launchroutes(
         full_path = full_workspace(workspace)
         existing_browser = await repository.first(owner=session_id, workspace=full_path)
 
-        if not existing_browser:
+        if existing_browser:
+            await repository.update_access_time(existing_browser)
+        else:
             browser = await factory(session_id, full_path)
             await repository.insert(browser)
 

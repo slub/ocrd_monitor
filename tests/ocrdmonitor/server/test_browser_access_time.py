@@ -29,27 +29,6 @@ async def test__browsers_inserted_at_different_times__can_retrieve_browser_inser
         assert await browser_repo.browsers_accessed_before(new_time) == [browser]
 
 
-@pytest.mark.asyncio
-async def test__finding_a_specific_browser__updates_the_last_access_time(
-    repository_fixture: Fixture,
-) -> None:
-    insert_time = datetime(2023, 8, 18, 12, 37)
-    clock = ClockStub(insert_time)
-
-    fixture = repository_fixture.with_clock(clock)
-
-    async with fixture as env:
-        browser_repo = (await env.repositories()).browser_processes
-        browser = await insert_browser(env.browser_factory(), browser_repo)
-
-        update_time = clock.advance_time()
-        _ = await browser_repo.first(
-            owner=browser.owner(), workspace=browser.workspace()
-        )
-
-        assert await browser_repo.browsers_accessed_before(update_time) == []
-
-
 async def insert_browser(
     browser_factory: OcrdBrowserFactory,
     browser_repo: BrowserProcessRepository,

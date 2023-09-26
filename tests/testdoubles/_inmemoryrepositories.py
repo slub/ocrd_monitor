@@ -86,8 +86,20 @@ class InMemoryBrowserProcessRepository:
         if entry is None:
             return None
 
-        entry.last_access_time = self.clock()
         return entry.restore(self.restoring_factory)
+
+    async def update_access_time(self, browser: OcrdBrowser) -> None:
+        entry = next(
+            iter(
+                await self._find(owner=browser.owner(), workspace=browser.workspace())
+            ),
+            None,
+        )
+
+        if entry is None:
+            return
+
+        entry.last_access_time = self.clock()
 
     async def browsers_accessed_before(self, time: datetime) -> list[OcrdBrowser]:
         return [

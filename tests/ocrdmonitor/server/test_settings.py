@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 from pathlib import Path
 from typing import Any
@@ -11,10 +12,23 @@ from ocrdmonitor.server.settings import (
     Settings,
 )
 
+
+TIMEOUT_DAYS = 1
+TIMEOUT_HOURS = 2
+TIMEOUT_MINUTES = 20
+BROWSER_TIMEOUT = timedelta(
+    days=TIMEOUT_DAYS, hours=TIMEOUT_HOURS, minutes=TIMEOUT_MINUTES
+)
+BROWSER_TIMEOUT_SETTINGS_STRING = (
+    f"P{TIMEOUT_DAYS}DT{TIMEOUT_HOURS}H{TIMEOUT_MINUTES}M0S"
+)
+
+
 EXPECTED = Settings(
     monitor_db_connection_string="user@mongo:mongodb:1234",
     ocrd_browser=OcrdBrowserSettings(
         mode="native",
+        timeout=BROWSER_TIMEOUT,
         workspace_dir=Path("path/to/workdir"),
         port_range=(9000, 9100),
     ),
@@ -34,9 +48,15 @@ EXPECTED = Settings(
 
 
 def expected_to_env() -> dict[str, str]:
+    def stringify(value: Any) -> str:
+        if value is BROWSER_TIMEOUT:
+            return BROWSER_TIMEOUT_SETTINGS_STRING
+
+        return str(value)
+
     def to_dict(setting_name: str, settings: dict[str, Any]) -> dict[str, str]:
         return {
-            f"OCRD_{setting_name}__{key.upper()}": str(value)
+            f"OCRD_{setting_name}__{key.upper()}": stringify(value)
             for key, value in settings.items()
         }
 

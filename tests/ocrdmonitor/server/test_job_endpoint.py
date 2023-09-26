@@ -1,19 +1,19 @@
 from __future__ import annotations
-from dataclasses import replace
 
+import json
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
 from fastapi import status
 from httpx import Response
-import json
-import pytest
 from pytest_httpx import HTTPXMock
 
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.protocols import OcrdJob
-from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.fixtures.environment import Fixture
+from tests.ocrdmonitor.server import scraping
 
 
 def job_template() -> OcrdJob:

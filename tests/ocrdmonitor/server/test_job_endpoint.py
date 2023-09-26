@@ -13,7 +13,7 @@ from pytest_httpx import HTTPXMock
 from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.protocols import OcrdJob
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures.environment import Fixture
+from tests.ocrdmonitor.fixtures.environment import Fixture
 
 
 def job_template() -> OcrdJob:

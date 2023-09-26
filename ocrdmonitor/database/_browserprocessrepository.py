@@ -110,15 +110,14 @@ class MongoBrowserProcessRepository:
             result.process_id,
         )
 
-    async def browsers_by_access_time(self) -> list[tuple[OcrdBrowser, datetime]]:
+    async def browsers_accessed_before(self, time: datetime) -> list[OcrdBrowser]:
         return [
-            (
-                self._restoring_factory(
-                    **p.model_dump(exclude={"id", "revision_id", "last_access_time"})
-                ),
-                p.last_access_time,
+            self._restoring_factory(
+                **p.model_dump(exclude={"id", "revision_id", "last_access_time"})
             )
-            for p in await BrowserProcess.find_all().to_list()
+            for p in await BrowserProcess.find(
+                BrowserProcess.last_access_time < time
+            ).to_list()
         ]
 
     async def count(self) -> int:

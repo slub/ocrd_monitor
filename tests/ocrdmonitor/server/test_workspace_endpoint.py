@@ -9,11 +9,12 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures.environment import (
+from tests.ocrdmonitor.server.decorators import use_custom_repository
+from tests.ocrdmonitor.fixtures.environment import (
     DevEnvironment,
     Fixture,
 )
-from tests.ocrdmonitor.server.fixtures.settings import WORKSPACE_DIR
+from tests.ocrdmonitor.fixtures.settings import WORKSPACE_DIR
 from tests.testdoubles import (
     Browser_Heading,
     BrowserSpy,

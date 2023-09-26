@@ -81,30 +81,19 @@ class InMemoryBrowserProcessRepository:
             for entry in await self._find(owner=owner, workspace=workspace)
         ]
 
-    async def _first(self, *, owner: str, workspace: str) -> BrowserEntry | None:
-        results = await self._find(owner=owner, workspace=workspace)
-        return next(iter(results), None)
-
     async def first(self, *, owner: str, workspace: str) -> OcrdBrowser | None:
-        entry = await self._first(owner=owner, workspace=workspace)
+        entry = next(iter(await self._find(owner=owner, workspace=workspace)), None)
         if entry is None:
             return None
 
         entry.last_access_time = self.clock()
         return entry.restore(self.restoring_factory)
 
-    async def last_access_time_for(self, browser: OcrdBrowser) -> datetime | None:
-        entry = await self._first(owner=browser.owner(), workspace=browser.workspace())
-
-        if entry is None:
-            return None
-
-        return entry.last_access_time
-
-    async def browsers_by_access_time(self) -> list[tuple[OcrdBrowser, datetime]]:
-        entries = sorted(await self._find(), key=lambda b: b.last_access_time)
+    async def browsers_accessed_before(self, time: datetime) -> list[OcrdBrowser]:
         return [
-            (e.restore(self.restoring_factory), e.last_access_time) for e in entries
+            e.restore(self.restoring_factory)
+            for e in self._processes
+            if e.last_access_time < time
         ]
 
     async def count(self) -> int:

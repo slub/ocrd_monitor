@@ -1,14 +1,8 @@
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from datetime import datetime
 from types import TracebackType
-from typing import (
-    Any,
-    AsyncContextManager,
-    Callable,
-    ContextManager,
-    Self,
-    Type,
-)
+from typing import AsyncContextManager, Callable, Self, Type
 
 from fastapi.testclient import TestClient
 
@@ -22,8 +16,8 @@ from ocrdmonitor.protocols import (
 )
 from ocrdmonitor.server.app import create_app
 from ocrdmonitor.server.settings import Settings
-from tests.ocrdmonitor.server.fixtures.repository import inmemory_repository
-from tests.ocrdmonitor.server.fixtures.settings import create_settings
+from tests.ocrdmonitor.fixtures.repository import inmemory_repository
+from tests.ocrdmonitor.fixtures.settings import create_settings
 from tests.testdoubles import (
     BrowserRegistry,
     BrowserSpy,
@@ -70,8 +64,10 @@ class DevEnvironment:
 
 
 BrowserConstructor = Callable[[], BrowserTestDouble]
+
+Clock = Callable[[], datetime]
 RepositoryInitializer = Callable[
-    [BrowserRestoringFactory],
+    [BrowserRestoringFactory, Clock],
     AsyncContextManager[Repositories],
 ]
 
@@ -85,9 +81,9 @@ class Fixture:
         self.session_id = ""
         self.clock = lambda: datetime.now()
 
-        self._open_contexts: list[ContextManager[Any] | AsyncContextManager[Any]] = []
+        self._ctxstack = AsyncExitStack()
 
-    def with_clock(self, clock: Callable[[], datetime]) -> Self:
+    def with_clock(self, clock: Clock) -> Self:
         self.clock = clock
         return self
 
@@ -112,7 +108,7 @@ class Fixture:
         return self
 
     async def __aenter__(self) -> DevEnvironment:
-        registry = BrowserRegistry({})
+        registry = BrowserRegistry()
         repositories = await self._init_repos(registry)
         factory = await self._create_factory(registry)
         await self._insert_running_browsers(registry, repositories.browser_processes)
@@ -129,10 +125,9 @@ class Fixture:
 
     async def _init_repos(self, registry: BrowserRegistry) -> Repositories:
         restoring_factory = RestoringRegistryBrowserFactory(registry)
-        repo_ctx = self.repo_constructor(restoring_factory, self.clock)
-        self._open_contexts.append(repo_ctx)
-        repositories = await repo_ctx.__aenter__()
-        return repositories
+        return await self._ctxstack.enter_async_context(
+            self.repo_constructor(restoring_factory, self.clock)
+        )
 
     async def _create_factory(
         self, registry: BrowserRegistry
@@ -141,22 +136,19 @@ class Fixture:
             default_browser=self.browser_constructor
         )
         creating_factory = RegistryBrowserFactory(factory, registry)
-        await factory.__aenter__()
-        self._open_contexts.append(factory)
-        return creating_factory
+        return await self._ctxstack.enter_async_context(creating_factory)
 
     def _init_app(self, app: TestClient) -> TestClient:
-        app.__enter__()
+        self._ctxstack.enter_context(app)
         if self.session_id:
             app.cookies["session_id"] = self.session_id
-        self._open_contexts.append(app)
         return app
 
     async def _insert_running_browsers(
         self, registry: BrowserRegistry, repository: BrowserProcessRepository
     ) -> None:
         for browser in self.existing_browsers:
-            registry[browser.address()] = browser
+            registry.insert(browser)
             await repository.insert(browser)
             await browser.start()
 
@@ -166,8 +158,4 @@ class Fixture:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        for ctx in self._open_contexts:
-            if isinstance(ctx, AsyncContextManager):
-                await ctx.__aexit__(exc_type, exc_value, traceback)
-            else:
-                ctx.__exit__(exc_type, exc_value, traceback)
+        await self._ctxstack.aclose()

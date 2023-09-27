@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from ocrdmonitor import processtimeout
+from ocrdmonitor.server.lifespan import processtimeout
 
 from tests.ocrdmonitor.fixtures.environment import Fixture
 from tests.ocrdmonitor.server.test_browser_access_time import insert_browser
@@ -11,13 +11,13 @@ from tests.testdoubles import ClockStub
 
 @pytest.mark.asyncio
 async def test__when_a_process_is_not_accessed_for_a_long_time__it_will_be_shut_down(
-    repository_fixture: Fixture,
+    browser_fixture: Fixture,
 ) -> (None):
     process_timeout = timedelta(days=1)
     way_back = datetime.now()
 
     clock = ClockStub(way_back)
-    fixture = repository_fixture.with_clock(clock)
+    fixture = browser_fixture.with_clock(clock)
     async with fixture as env:
         browser_repo = (await env.repositories()).browser_processes
         factory = env.browser_factory()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import asyncio 
+import asyncio
 import logging
 
 from types import TracebackType
@@ -8,7 +8,7 @@ from typing import AsyncContextManager, Type, cast
 
 import httpx
 from websockets import client
-from websockets.exceptions import ConnectionClosed
+from websockets.exceptions import ConnectionClosed, ConnectionClosedError
 from websockets.legacy.client import WebSocketClientProtocol
 from websockets.typing import Subprotocol
 
@@ -51,7 +51,11 @@ class WebSocketChannel:
                 return bytes()
 
             return cast(bytes, await self._open_connection.recv())
-        except ConnectionClosed:
+        except (
+            ConnectionClosed,
+            ConnectionClosedError,
+            asyncio.exceptions.IncompleteReadError,
+        ):
             raise ChannelClosed()
 
     async def send_bytes(self, data: bytes) -> None:
@@ -60,7 +64,11 @@ class WebSocketChannel:
                 return
 
             await self._open_connection.send(data)
-        except ConnectionClosed:
+        except (
+            ConnectionClosed,
+            ConnectionClosedError,
+            asyncio.exceptions.IncompleteReadError,
+        ):
             raise ChannelClosed()
 
 
@@ -68,18 +76,15 @@ class HttpBrowserClient:
     def __init__(self, address: str) -> None:
         self.address = address
 
-    async def get(self, resource: str, retry: bool=True) -> bytes:
+    async def get(self, resource: str, retry: bool = True) -> bytes:
         try:
-
-            async with httpx.AsyncClient(
-                base_url=self.address
-            ) as client:
+            async with httpx.AsyncClient(base_url=self.address) as client:
                 response = await client.get(resource)
                 return response.content
         except Exception as ex:
             logging.info(f"is instance is {isinstance(ex, httpx.RemoteProtocolError)}")
             logging.info(f"retry value is {retry}")
-            if isinstance(ex, httpx.RemoteProtocolError) and retry :    
+            if isinstance(ex, httpx.RemoteProtocolError) and retry:
                 await asyncio.sleep(10)
                 return await self.get(resource, False)
 

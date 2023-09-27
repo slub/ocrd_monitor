@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -16,6 +17,7 @@ from ocrdmonitor.protocols import (
 )
 from ocrdmonitor.server.app import create_app
 from ocrdmonitor.server.settings import Settings
+from tests.ocrdmonitor.fixtures.lifespan import dev_lifespan
 from tests.ocrdmonitor.fixtures.repository import inmemory_repository
 from tests.ocrdmonitor.fixtures.settings import create_settings
 from tests.testdoubles import (
@@ -47,7 +49,7 @@ class DevEnvironment:
     _app: TestClient = field(init=False)
 
     def __post_init__(self) -> None:
-        self._app = TestClient(create_app(self))
+        self._app = TestClient(create_app(self, dev_lifespan(self)))
 
     async def repositories(self) -> Repositories:
         return self._repositories
@@ -158,4 +160,5 @@ class Fixture:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        await self._ctxstack.aclose()
+        async with asyncio.timeout(5):
+            await self._ctxstack.aclose()

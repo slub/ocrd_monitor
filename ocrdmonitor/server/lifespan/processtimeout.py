@@ -1,15 +1,18 @@
 import asyncio
+import logging
 
 from datetime import datetime, timedelta
-from typing import Callable
+from typing import Any, Callable, Coroutine
 
-from ocrdmonitor.backgroundprocess import BackgroundProcess
-from ocrdmonitor.environment import ProductionEnvironment
 from ocrdmonitor.protocols import BrowserProcessRepository, Environment
-from ocrdmonitor.server.settings import Settings
 
+logging.getLogger(__file__).setLevel(logging.INFO)
 
 EXPIRATION_LOOP_INTERVAL_SECONDS = 3600
+
+
+def _never_cancel() -> bool:
+    return False
 
 
 async def shutdown_expired(
@@ -24,19 +27,15 @@ async def shutdown_expired(
             group.create_task(repository.delete(process))
 
 
-async def expiration_loop(environment: Environment) -> None:
+async def expiration_loop(
+    environment: Environment,
+    cancellation_fn: Callable[[], bool] = _never_cancel,
+    loop_interval: int = EXPIRATION_LOOP_INTERVAL_SECONDS,
+) -> None:
     repository = (await environment.repositories()).browser_processes
-    while True:
+    while not cancellation_fn():
+        logging.getLogger(__file__).info("Running expiration loop")
         await shutdown_expired(
             repository, environment.settings.ocrd_browser.timeout, datetime.now
         )
-        await asyncio.sleep(EXPIRATION_LOOP_INTERVAL_SECONDS)
-
-
-def background_main() -> None:
-    env = ProductionEnvironment(Settings())
-    asyncio.run(expiration_loop(env))
-
-
-def browser_cleanup_process() -> BackgroundProcess:
-    return BackgroundProcess(background_main)
+        await asyncio.sleep(loop_interval)

@@ -9,9 +9,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from ocrdmonitor.protocols import Environment
+
+from ocrdmonitor.server import lifespan
 from ocrdmonitor.server.index import create_index
 from ocrdmonitor.server.jobs import create_jobs
-from ocrdmonitor.server.lifespan import lifespan
 from ocrdmonitor.server.logs import create_logs
 from ocrdmonitor.server.logview import create_logview
 from ocrdmonitor.server.workflows import create_workflows
@@ -22,8 +23,8 @@ STATIC_DIR = PKG_DIR / "static"
 TEMPLATE_DIR = PKG_DIR / "templates"
 
 
-def create_app(environment: Environment) -> FastAPI:
-    app = FastAPI(lifespan=lifespan(environment))
+def create_app(environment: Environment, lifespan: lifespan.Lifespan) -> FastAPI:
+    app = FastAPI(lifespan=lifespan)
     templates = Jinja2Templates(TEMPLATE_DIR)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

@@ -58,7 +58,11 @@ class SubProcessOcrdBrowser:
         try:
             os.kill(pid, signal.SIGKILL)
         except ProcessLookupError:
-            logging.warning(f"Could not find process with ID {pid}")
+            logging.getLogger(__file__).warning(f"Could not find process with ID {pid}")
+        except RuntimeError as ex:
+            logging.getLogger(__file__).warning(
+                f"Got an unexpected runtime error:\n {ex}"
+            )
 
     def client(self) -> OcrdBrowserClient:
         return HttpBrowserClient(self.address())

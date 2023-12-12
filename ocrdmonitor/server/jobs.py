@@ -25,7 +25,7 @@ class RunningJob:
 def split_into_running_and_completed(
     jobs: Iterable[OcrdJob],
 ) -> tuple[list[OcrdJob], list[OcrdJob]]:
-    running_ocrd_jobs = [job for job in jobs if job.is_running]
+    running_ocrd_jobs = [job for job in jobs if job.is_processing]
     completed_ocrd_jobs = [job for job in jobs if job.is_completed]
     return running_ocrd_jobs, completed_ocrd_jobs
 
@@ -63,9 +63,10 @@ def create_jobs(
 
         now = datetime.now(timezone.utc)
         return templates.TemplateResponse(
-            "jobs.html.j2",
+            "table.html.j2",
             {
                 "request": request,
+                "title": "Jobs",
                 "running_jobs": sorted(
                     running_jobs,
                     key=lambda x: x.ocrd_job.time_created or now,

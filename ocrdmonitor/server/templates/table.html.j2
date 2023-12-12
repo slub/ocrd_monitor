@@ -1,0 +1,185 @@
+{% extends 'base.html.j2' %}
+
+{% block headline %}
+{% block title %}{{ title }}{% endblock %}
+{% endblock %}
+{% block content %}
+
+<div class="columns">
+    <div class="column">
+        <input class="input" type="text" placeholder="Search" id="filter-search">
+    </div>
+</div>
+
+<div id="content">
+    <div id="list"></div>
+</div>
+
+<script>
+    const api_url = "{{ url_for('api.jobs') }}";
+    const workflow_url_template = "{{ url_for('workflows.detail', path=" %% WORKFLOW_FILE %% ") }}"
+    const workspace_url_template = "{{ url_for('workspaces.open', workspace=" %% WORKDIR %% ") }}"
+    const workspace_log_url_template = "{{ url_for('logs.view', path=" %% WORKDIR %% /ocrd.log")}}"
+
+    function renderResult(result) {
+        let status = '<button class="ocrd-status button is-loading">Running</button>'
+
+        if (result.status == "SUCCESS") {
+            status = '<div class="icon-text" style="margin-left: 10px" ><span class="icon has-text-success"><i class="fa fa-lg fa-check"></i></span></div>'
+        } else if (result.status == "FAILURE") {
+            status = '<div class="icon-text" style="margin-left: 10px" ><span class="icon has-text-danger"><i class="fa fa-lg fa-times"></i></span></div>'
+        }
+
+        let workflow_url = workflow_url_template.replace("%%WORKFLOW_FILE%%", result.workflow_file)
+        let workspace_url = workspace_url_template.replace("%%WORKDIR%%", result.workdir)
+        let workspace_log_url = workspace_log_url_template.replace("%%WORKDIR%%", result.workdir)
+
+        return `<div class="box" data-job-id="${result.id}" data-job-status="${result.status}" >
+                            <div class="columns is-vcentered">
+                                <div class="column is-1">
+                                    ${status}
+                                </div>
+                                <div class="column is-5">
+                                    <div class="title is-6">${result.process_id}</div>
+                                    <div class="subtitle" style="font-size: 14px" >Workflow: <a href="${workflow_url}">${result.workflow}</a></div>
+                                </div>
+                                <div class="column is-2" style="font-size: 14px">
+                                    <div class="icon-text">
+                                        <span class="icon">
+                                            <i class="fa fa-calendar-o" aria-hidden="true"></i>
+                                        </span>
+                                        <span>${moment.utc(result.time_created).fromNow()}</span>
+                                    </div>
+                                    <div class="icon-text">
+                                        <span class="icon">
+                                            <i class="fa fa-clock-o" aria-hidden="true"></i>
+                                        </span>
+                                        <span>${diff(result.time_created, result.time_terminated)}</span>
+                                    </div>
+                                </div>  
+                                <div class="column is-3">
+                                    <div class="columns is-vcentered">
+                                        <div class="column">
+                                            <a href="${workspace_url}" class="button is-link is-inverted">${result.workspace}</a>
+                                        </div>
+                                        <div class="column">
+                                            <a href="${workspace_log_url}" class="button is-link is-inverted">View Log</a>
+                                        </div>
+                                    </div>
+                                </div> 
+                                <div class="column is-1" style="font-size: 14px">
+                                    <div class="dropdown is-right">
+                                        <div class="dropdown-trigger">
+                                            <button class="button" aria-haspopup="true" aria-controls="job-dropdown-${result.id}">
+                                                <span class="icon is-small">
+                                                    <i class="fa fa-ellipsis-h" aria-hidden="true"></i>
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div class="dropdown-menu" id="job-dropdown-${result.id}" role="menu">
+                                            <div class="dropdown-content">
+                                                <div class="dropdown-item">
+                                                    <a href="${workspace_url}" class="dropdown-item">View Workflow</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>    
+                            </div>
+                </div>`
+
+    }
+
+    function afterRender() {
+
+        let dropdowns = document.querySelectorAll('.dropdown')
+        dropdowns.forEach(dropdown => 
+            dropdown.addEventListener('click', function(event) {
+                event.stopPropagation();
+                let isActive = dropdown.classList.contains('is-active')
+
+                dropdowns.forEach((item) => {
+                    item.classList.remove('is-active');
+                });
+
+                if( !isActive ) {
+                    dropdown.classList.add('is-active');
+                }
+            })
+        )
+    }
+
+    const resultsView = new ResultsView(document.getElementById("list"), renderResult, afterRender);
+    resultsView.render(api_url);
+    document.getElementById('filter-search').addEventListener("change", (event) => {
+        resultsView.render(api_url + `?search=${event.target.value}`);
+    });
+</script>
+
+<h2 class="title">Active Jobs</h2>
+<table id="running-jobs" class="table">
+    <thead>
+        <tr>
+            <th>TSTART</th>
+            <th>TASK ID</th>
+            <th>PROCESS ID</th>
+            <th>WORKFLOW</th>
+            <th>PID</th>
+            <th>STATUS</th>
+            <th>% CPU</th>
+            <th>MB RSS</th>
+            <th>DURATION</th>
+            <th>ACTION</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in running_jobs: %}
+        <tr>
+            <td>{{ job.ocrd_job.time_created }}</td>
+            <td>{{ job.ocrd_job.task_id }}</td>
+            <td>{{ job.ocrd_job.process_id }}</td>
+            <td><a href="{{ url_for('workflows.detail', path=job.ocrd_job.workflow_file) }}">{{ job.ocrd_job.workflow
+                    }}</a></td>
+            <td>{{ job.process_status.pid }}</td>
+            <td>{{ job.process_status.state }}</td>
+            <td>{{ job.process_status.percent_cpu }}</td>
+            <td>{{ job.process_status.memory }}</td>
+            <td>{{ job.process_status.cpu_time }}</td>
+            <td><button onclick="killjob({{ job.process_status.pid }})">Kill!</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<h2 class="title">Inactive Jobs</h2>
+<table id="completed-jobs" class="table">
+    <thead>
+        <tr>
+            <th>TSTOP</th>
+            <th>TASK ID</th>
+            <th>PROCESS ID</th>
+            <th>WORKFLOW</th>
+            <th>RETVAL</th>
+            <th>WORKSPACE</th>
+            <th>LOGS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in completed_jobs: %}
+        <tr>
+            <td>{{ job.time_terminated }}</td>
+            <td>{{ job.task_id }}</td>
+            <td>{{ job.process_id }}</td>
+            <td><a href="{{ url_for('workflows.detail', path=job.workflow_file) }}">{{ job.workflow }}</a></td>
+            <td>{{ job.return_code }} {% if job.return_code == 0 %}(SUCCESS){% else %}(FAILURE){% endif %}</td>
+            <td><a href="{{ url_for('workspaces.open', workspace=job.workdir)}}">{{ job.process_dir.name }}</a></td>
+            <td>
+                <a href="{{ url_for('logs.view', path=job.workdir / 'ocrd.log')}}">ocrd.log</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</body>
+{% endblock %}

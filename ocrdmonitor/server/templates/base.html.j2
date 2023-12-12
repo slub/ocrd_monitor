@@ -6,7 +6,10 @@
     {% block meta %}{% endblock %}
     <title>{% block title %}{% endblock %} - OCR-D Monitor</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='main.css') }}">
+    <script src="https://momentjs.com/downloads/moment.js"></script>
+    <script language="javascript" type="text/javascript" src="{{ url_for('static', path='main.js') }}"></script>
   </head>
   <body>
     <nav class="navbar" role="navigation" aria-label="main navigation">
@@ -49,14 +52,14 @@
           </div>
         </div>
       </div>
-    </nav>
-  <section class="section">
-    <div id="main-content" class="container">
-      <h1 class="title">
-        {% block headline %}{% endblock %}
-      </h1>
-      {% block content %}{% endblock %}
-    </div>
-  </section>
+    </nav> 
+    <section id="main-content" class="section">
+      <div class="container">
+        <h1 class="title">
+          {% block headline %}{% endblock %}
+        </h1>
+        {% block content %}{% endblock %}
+      </div>
+    </section>
   </body>
 </html>

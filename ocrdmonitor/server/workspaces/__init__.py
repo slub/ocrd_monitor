@@ -29,7 +29,7 @@ def create_workspaces(
     browser_repository = Depends(get_browser_repository)
     browser_factory = Depends(environment.browser_factory)
 
-    register_listroutes(router, templates, browser_settings)
+    register_listroutes(router, templates)
     register_launchroutes(
         router, templates, browser_factory, browser_repository, full_workspace
     )

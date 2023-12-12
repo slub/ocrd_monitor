@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from ocrdmonitor.protocols import Environment
+from ocrdmonitor.server.api import create_api
 from ocrdmonitor.server.index import create_index
 from ocrdmonitor.server.jobs import create_jobs
 from ocrdmonitor.server.lifespan import lifespan
@@ -45,6 +46,7 @@ def create_app(environment: Environment) -> FastAPI:
             content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
         )
 
+    app.include_router(create_api(environment))
     app.include_router(create_index(templates))
     app.include_router(create_jobs(templates, environment))
     app.include_router(create_workspaces(templates, environment))

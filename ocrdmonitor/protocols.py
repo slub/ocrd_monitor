@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Collection, NamedTuple, Protocol
@@ -7,6 +6,7 @@ from ocrdbrowser import OcrdBrowser, OcrdBrowserFactory
 from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.server.settings import Settings
 
+from pydantic import BaseModel, computed_field
 
 class BrowserRestoringFactory(Protocol):
     def __call__(
@@ -37,12 +37,12 @@ class BrowserProcessRepository(Protocol):
         ...
 
 
-@dataclass(frozen=True)
-class OcrdJob:
+class OcrdJob(BaseModel):
+    id: str
     pid: int | None
     return_code: int | None
     time_created: datetime
-    time_terminated: datetime
+    time_terminated: datetime | None
     process_id: str
     task_id: str
     process_dir: Path
@@ -52,23 +52,44 @@ class OcrdJob:
     controller_address: str
 
     @property
-    def is_running(self) -> bool:
+    def is_processing(self) -> bool:
         return self.pid is not None
 
     @property
     def is_completed(self) -> bool:
         return self.return_code is not None
 
+    @computed_field   
     @property
     def workflow(self) -> str:
         return Path(self.workflow_file).name
+    
+    @computed_field   
+    @property
+    def workspace(self) -> str:
+        return Path(self.process_dir).name
+
+    @computed_field   
+    @property
+    def status(self) -> str:
+        if self.is_processing :
+            return "PROCESSING"
+        if self.is_completed :
+            if self.return_code == 0 :
+                return "SUCCESS"
+            else : 
+                return "FAILURE"
+        return "UNDEFINED"
 
 
 class JobRepository(Protocol):
     async def insert(self, job: OcrdJob) -> None:
         ...
 
-    async def find_all(self) -> list[OcrdJob]:
+    async def find_one(self) -> list[OcrdJob]:
+        ...
+
+    async def get(self) -> OcrdJob:
         ...
 
 

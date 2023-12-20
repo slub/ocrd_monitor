@@ -1,0 +1,35 @@
+{% extends 'base.html.j2' %}
+
+{% block headline %}
+  {% block title %}{{ title }}{% endblock %}
+{% endblock %}
+{% block content %}
+
+    <div class="columns">
+        <div class="column">
+            <input class="input" type="text" placeholder="Search" id="filter-search" >
+        </div>
+    </div>
+
+    <div id="content" >
+        <div id="list" ></div>
+    </div>
+
+
+    <script>
+        const api_url = "{{ url_for('api.list.workspaces') }}";
+
+        function renderResult( result ){
+            return `<div class="box">${result}</div>`
+        }
+        
+        const resultsView = new ResultsView(document.getElementById('list'), renderResult );
+        resultsView.render(api_url);
+
+        document.getElementById('filter-search').addEventListener("change", (event) => {
+            resultsView.render(api_url + `?search=${event.target.value}`);
+        });
+    </script>
+
+</body>
+{% endblock %}

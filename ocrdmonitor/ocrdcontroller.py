@@ -13,13 +13,15 @@ class OcrdController:
             return None
 
         pid = await self._remote.read_file(f"/data/{ocrd_job.remotedir}/ocrd.pid")
-        process_statuses = await self._remote.process_status(int(pid))
 
-        for status in process_statuses:
-            if status.state == ProcessState.RUNNING:
-                return status
+        if pid :
+            process_statuses = await self._remote.process_status(int(pid))
 
-        if process_statuses:
-            return process_statuses[0]
+            for status in process_statuses:
+                if status.state == ProcessState.RUNNING:
+                    return status
+
+            if process_statuses:
+                return process_statuses[0]
 
         return None

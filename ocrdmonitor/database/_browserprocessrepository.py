@@ -1,7 +1,9 @@
-from beanie.odm.queries.find import FindMany
-from typing import Any, Collection, Mapping
+from datetime import datetime
+from typing import Any, Callable, Collection, Mapping
+
 import pymongo
 from beanie import Document
+from beanie.odm.queries.find import FindMany
 
 from ocrdbrowser import OcrdBrowser
 from ocrdmonitor.protocols import BrowserRestoringFactory
@@ -12,6 +14,7 @@ class BrowserProcess(Document):
     owner: str
     process_id: str
     workspace: str
+    last_access_time: datetime
 
     class Settings:
         indexes = [
@@ -25,8 +28,11 @@ class BrowserProcess(Document):
 
 
 class MongoBrowserProcessRepository:
-    def __init__(self, restoring_factory: BrowserRestoringFactory) -> None:
+    def __init__(
+        self, restoring_factory: BrowserRestoringFactory, clock: Callable[[], datetime]
+    ) -> None:
         self._restoring_factory = restoring_factory
+        self._clock = clock
 
     async def insert(self, browser: OcrdBrowser) -> None:
         await BrowserProcess(  # type: ignore
@@ -34,6 +40,7 @@ class MongoBrowserProcessRepository:
             owner=browser.owner(),
             process_id=browser.process_id(),
             workspace=browser.workspace(),
+            last_access_time=self._clock(),
         ).insert()
 
     async def delete(self, browser: OcrdBrowser) -> None:
@@ -100,6 +107,28 @@ class MongoBrowserProcessRepository:
             result.address,
             result.process_id,
         )
+
+    async def update_access_time(self, browser: OcrdBrowser) -> None:
+        result = await BrowserProcess.find_one(
+            BrowserProcess.owner == browser.owner(),
+            BrowserProcess.workspace == browser.workspace(),
+        )
+
+        if result is None:
+            return
+
+        result.last_access_time = self._clock()
+        await result.save()
+
+    async def browsers_accessed_before(self, time: datetime) -> list[OcrdBrowser]:
+        return [
+            self._restoring_factory(
+                **p.model_dump(exclude={"id", "revision_id", "last_access_time"})
+            )
+            for p in await BrowserProcess.find(
+                BrowserProcess.last_access_time < time
+            ).to_list()
+        ]
 
     async def count(self) -> int:
         return await BrowserProcess.count()

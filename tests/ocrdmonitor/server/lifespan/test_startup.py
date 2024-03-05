@@ -1,6 +1,6 @@
 import pytest
 
-from tests.ocrdmonitor.server.fixtures.environment import Fixture
+from tests.ocrdmonitor.fixtures.environment import Fixture
 from tests.testdoubles import BrowserSpy, unreachable_browser
 
 

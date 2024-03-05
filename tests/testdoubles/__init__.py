@@ -6,15 +6,16 @@ from ._browserfactory import (
     IteratingBrowserTestDoubleFactory,
 )
 from ._browserfake import BrowserFake
-from ._inmemoryrepositories import (
-    InMemoryBrowserProcessRepository,
-    InMemoryJobRepository,
-)
 from ._browserspy import (
     Browser_Heading,
     BrowserSpy,
     browser_with_disconnecting_channel,
     unreachable_browser,
+)
+from ._clock import ClockStub
+from ._inmemoryrepositories import (
+    InMemoryBrowserProcessRepository,
+    InMemoryJobRepository,
 )
 from ._registrybrowserfactory import (
     BrowserRegistry,
@@ -30,12 +31,12 @@ __all__ = [
     "BrowserSpy",
     "BrowserTestDouble",
     "BrowserTestDoubleFactory",
+    "ClockStub",
     "FAKE_HOST_ADDRESS",
     "IteratingBrowserTestDoubleFactory",
     "InMemoryBrowserProcessRepository",
     "InMemoryJobRepository",
     "BrowserRegistry",
-    "ProxyBrowser",
     "RegistryBrowserFactory",
     "RestoringRegistryBrowserFactory",
     "browser_with_disconnecting_channel",

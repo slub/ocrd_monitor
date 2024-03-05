@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta
 from typing import AsyncIterator
 
 import pytest
@@ -9,15 +10,17 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from tests.ocrdmonitor.server import scraping
-from tests.ocrdmonitor.server.fixtures.environment import (
+from tests.ocrdmonitor.server.decorators import use_custom_repository
+from tests.ocrdmonitor.fixtures.environment import (
     DevEnvironment,
     Fixture,
 )
-from tests.ocrdmonitor.server.fixtures.settings import WORKSPACE_DIR
+from tests.ocrdmonitor.fixtures.settings import WORKSPACE_DIR
 from tests.testdoubles import (
     Browser_Heading,
     BrowserSpy,
     browser_with_disconnecting_channel,
+    ClockStub,
     unreachable_browser,
 )
 
@@ -247,3 +250,32 @@ async def test__browser_stored_in_repo__when_browsing_workspace_redirects_to_res
         response = interact_with_workspace(env.app, "a_workspace")
 
     assert response.content == b"RESTORED BROWSER"
+
+
+@pytest.mark.asyncio
+async def test__browser_stored_in_repo__when_interacting__updates_its_access_time(
+    browser_fixture: Fixture,
+) -> None:
+    session_id = "the-owner"
+    workspace = "a_workspace"
+    full_workspace = str(WORKSPACE_DIR / workspace)
+    browser = BrowserSpy(session_id, full_workspace)
+
+    clock = ClockStub(datetime.now())
+
+    fixture = (
+        browser_fixture.with_running_browsers(browser)
+        .with_session_id(session_id)
+        .with_clock(clock)
+    )
+
+    async with fixture as env:
+        _ = interact_with_workspace(env.app, "a_workspace")
+
+        recently = clock.advance_time(timedelta(minutes=1))
+        _ = interact_with_workspace(env.app, "a_workspace")
+
+        now = clock.advance_time(timedelta(minutes=1))
+        repo = (await env.repositories()).browser_processes
+        assert await repo.browsers_accessed_before(recently) == []
+        assert await repo.browsers_accessed_before(now) == [browser]

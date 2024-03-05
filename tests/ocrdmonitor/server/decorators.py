@@ -2,7 +2,7 @@ import pytest
 from tests import markers
 from tests.decorators import compose
 
-from tests.ocrdmonitor.server.fixtures.repository import (
+from tests.ocrdmonitor.fixtures.repository import (
     inmemory_repository,
     mongodb_repository,
 )

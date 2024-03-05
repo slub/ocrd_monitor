@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from datetime import datetime
+from typing import AsyncIterator, Callable
 
 from testcontainers.mongodb import MongoDbContainer
 
@@ -11,11 +12,12 @@ from tests.testdoubles import InMemoryBrowserProcessRepository, InMemoryJobRepos
 @asynccontextmanager
 async def mongodb_repository(
     restoring_factory: BrowserRestoringFactory,
+    clock: Callable[[], datetime] = datetime.now,
 ) -> AsyncIterator[Repositories]:
     with MongoDbContainer() as container:
         await database.init(container.get_connection_url(), force_initialize=True)
         yield Repositories(
-            database.MongoBrowserProcessRepository(restoring_factory),
+            database.MongoBrowserProcessRepository(restoring_factory, clock),
             database.MongoJobRepository(),
         )
 
@@ -23,7 +25,9 @@ async def mongodb_repository(
 @asynccontextmanager
 async def inmemory_repository(
     restoring_factory: BrowserRestoringFactory,
+    clock: Callable[[], datetime] = datetime.now,
 ) -> AsyncIterator[Repositories]:
     yield Repositories(
-        InMemoryBrowserProcessRepository(restoring_factory), InMemoryJobRepository()
+        InMemoryBrowserProcessRepository(restoring_factory, clock),
+        InMemoryJobRepository(),
     )

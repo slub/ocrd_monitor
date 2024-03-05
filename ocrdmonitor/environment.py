@@ -1,3 +1,4 @@
+from datetime import datetime
 import functools
 from typing import Callable, Type
 
@@ -33,7 +34,7 @@ class ProductionEnvironment:
         await database.init(self.settings.monitor_db_connection_string)
         restoring_factory = RestoringFactories[self.settings.ocrd_browser.mode]
         return Repositories(
-            database.MongoBrowserProcessRepository(restoring_factory),
+            database.MongoBrowserProcessRepository(restoring_factory, datetime.now),
             database.MongoJobRepository(),
         )
 

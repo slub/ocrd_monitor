@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 from ocrdmonitor.server.settings import (
@@ -16,6 +17,7 @@ def create_settings() -> Settings:
     return Settings(
         monitor_db_connection_string="",
         ocrd_browser=OcrdBrowserSettings(
+            timeout=timedelta(),
             workspace_dir=WORKSPACE_DIR,
             port_range=(9000, 9100),
         ),

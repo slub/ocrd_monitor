@@ -48,8 +48,8 @@ markers = [
 ]
 
 [tool.pdm.scripts]
-test = "pytest tests -m 'not integration'"
-test-integration = "pytest tests"
+test = "pytest tests -vv -m 'not integration'"
+test-integration = "pytest tests -vv"
 monitor = "uvicorn --host 0.0.0.0 --port 5000 'ocrdmonitor.main:app'"
 
 [[tool.mypy.overrides]]

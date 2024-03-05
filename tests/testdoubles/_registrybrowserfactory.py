@@ -9,7 +9,34 @@ from ._browserfactory import (
     IteratingBrowserTestDoubleFactory,
 )
 
-BrowserRegistry = NewType("BrowserRegistry", dict[str, BrowserTestDouble])
+# BrowserRegistry = NewType("BrowserRegistry", dict[str, BrowserTestDouble])
+
+
+class BrowserRegistry:
+    def __init__(self) -> None:
+        self._registry: dict[str, BrowserTestDouble] = {}
+
+    @staticmethod
+    def browser_key(browser: OcrdBrowser) -> str:
+        return BrowserRegistry.key(
+            browser.owner(), browser.workspace(), browser.address()
+        )
+
+    @staticmethod
+    def key(owner: str, workspace: str, address: str) -> str:
+        return owner + workspace + address
+
+    def insert(self, browser: BrowserTestDouble) -> None:
+        self._registry[self.browser_key(browser)] = browser
+
+    def get(self, owner: str, workspace: str, address: str) -> BrowserTestDouble:
+        return self._registry[self.key(owner, workspace, address)]
+
+    def __getitem__(self, key: str) -> BrowserTestDouble:
+        return self._registry[key]
+
+    def __setitem__(self, key: str, value: BrowserTestDouble) -> None:
+        self._registry[key] = value
 
 
 class RegistryBrowserFactory:
@@ -39,7 +66,7 @@ class RegistryBrowserFactory:
 
     async def __call__(self, owner: str, workspace_path: str) -> OcrdBrowser:
         browser = await self._factory(owner, workspace_path)
-        self._registry[browser.address()] = cast(BrowserTestDouble, browser)
+        self._registry.insert(cast(BrowserTestDouble, browser))
         return browser
 
 
@@ -50,5 +77,5 @@ class RestoringRegistryBrowserFactory:
     def __call__(
         self, owner: str, workspace: str, address: str, process_id: str
     ) -> BrowserTestDouble:
-        browser = self._registry[address]
+        browser = self._registry.get(owner, workspace, address)
         return browser

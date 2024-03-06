@@ -39,11 +39,11 @@ def __beanie_initializer() -> InitDatabase:
 
         __initialized = True
         connection_str = rebuild_connection_string(connection_str)
-        client: AsyncIOMotorClient = AsyncIOMotorClient(connection_str) #  type: ignore
-        client.get_io_loop = asyncio.get_event_loop #  type: ignore
+        client: AsyncIOMotorClient = AsyncIOMotorClient(connection_str)
+        client.get_io_loop = asyncio.get_event_loop
         await init_beanie(
-            database=client.ocrd, #  type: ignore
-            document_models=[BrowserProcess, MongoOcrdJob],  # type: ignore
+            database=client.ocrd,
+            document_models=[BrowserProcess, MongoOcrdJob],
         )
 
     return init

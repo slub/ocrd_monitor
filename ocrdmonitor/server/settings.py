@@ -63,7 +63,7 @@ class OcrdBrowserSettings(BaseSettings):
         if not int_pair or len(int_pair) != 2:
             raise ValueError("Port range must have exactly two values")
 
-        return int_pair  # type: ignore
+        return int_pair
 
 
 class Settings(BaseSettings):

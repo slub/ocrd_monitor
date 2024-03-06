@@ -35,7 +35,7 @@ class MongoOcrdJob(Document):
 
 class MongoJobRepository:
     async def insert(self, job: OcrdJob) -> None:
-        await MongoOcrdJob(**asdict(job)).insert()  # type: ignore
+        await MongoOcrdJob(**asdict(job)).insert()
 
     async def find_all(self) -> list[OcrdJob]:
         return [OcrdJob(**j.dict(exclude={"id"})) for j in await MongoOcrdJob.find_all().to_list()]

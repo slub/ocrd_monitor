@@ -43,13 +43,13 @@ async def test__given_a_completed_ocrd_job__the_job_endpoint_lists_it_in_a_table
     result_text: str,
 ) -> None:
     async with repository_fixture as env:
-        completed_job = replace(job_template(), return_code=return_code)
-        await env._repositories.ocrd_jobs.insert(completed_job)
+        job = completed_ocrd_job(return_code)
+        await env._repositories.ocrd_jobs.insert(job)
 
         response = env.app.get("/jobs/")
 
         assert response.is_success
-        assert_lists_completed_job(completed_job, result_text, response)
+        assert_lists_completed_job(job, result_text, response)
 
 
 @pytest.mark.asyncio
@@ -58,12 +58,11 @@ async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resourc
 ) -> None:
     pid = 1234
 
-    async with fixture as env:
-        app = env.app
+    async with repository_fixture as env:
         job = running_ocrd_job(pid)
         await env._repositories.ocrd_jobs.insert(job)
 
-        response = app.get("/jobs/")
+        response = env.app.get("/jobs/")
 
         assert response.is_success
         assert_lists_running_job(job, response)
@@ -109,6 +108,9 @@ def running_ocrd_job(pid: int) -> OcrdJob:
     running_job = replace(job_template(), pid=pid)
     return running_job
 
+def completed_ocrd_job(return_code: int) -> OcrdJob:
+    completed_job = replace(job_template(), return_code=return_code)
+    return completed_job
 
 def assert_lists_completed_job(
     completed_job: OcrdJob, result_text: str, response: Response

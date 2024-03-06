@@ -12,11 +12,9 @@ from typing import (
 from fastapi.testclient import TestClient
 
 from ocrdbrowser import OcrdBrowserFactory
-from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.protocols import (
     BrowserProcessRepository,
     BrowserRestoringFactory,
-    RemoteServer,
     Repositories,
 )
 from ocrdmonitor.server.app import create_app
@@ -33,13 +31,6 @@ from tests.testdoubles import (
     RestoringRegistryBrowserFactory,
 )
 
-
-class RemoteDummy:
-    async def read_file(self, path: str) -> str:
-        return ""
-
-    async def process_status(self, process_group: int) -> list[ProcessStatus]:
-        return []
 
 
 @dataclass

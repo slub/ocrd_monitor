@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.protocols import Environment, OcrdJob, Repositories
 
 import httpx

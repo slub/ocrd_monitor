@@ -10,7 +10,6 @@ import json
 import pytest
 from pytest_httpx import HTTPXMock
 
-from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.protocols import OcrdJob
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.fixtures.environment import Fixture
@@ -58,8 +57,6 @@ async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resourc
     repository_fixture: Fixture,
 ) -> None:
     pid = 1234
-    expected_status = make_status(pid)
-    remote_stub = RemoteServerStub(expected_status)
 
     async with fixture as env:
         app = env.app
@@ -69,7 +66,7 @@ async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resourc
         response = app.get("/jobs/")
 
         assert response.is_success
-        assert_lists_running_job(job, expected_status, response)
+        assert_lists_running_job(job, response)
 
 
 @pytest.mark.asyncio
@@ -108,29 +105,6 @@ def non_mocked_hosts() -> list[str]:
     return ["testserver"]
 
 
-def make_status(pid: int) -> ProcessStatus:
-    expected_status = ProcessStatus(
-        pid=pid,
-        state=ProcessState.RUNNING,
-        percent_cpu=0.25,
-        memory=1024,
-        cpu_time=timedelta(seconds=10, minutes=5, hours=1),
-    )
-
-    return expected_status
-
-
-class RemoteServerStub:
-    def __init__(self, expected_status: ProcessStatus) -> None:
-        self.expected_status = expected_status
-
-    async def read_file(self, path: str) -> str:
-        return str(self.expected_status.pid)
-
-    async def process_status(self, process_group: int) -> list[ProcessStatus]:
-        return [self.expected_status]
-
-
 def running_ocrd_job(pid: int) -> OcrdJob:
     running_job = replace(job_template(), pid=pid)
     return running_job
@@ -154,7 +128,6 @@ def assert_lists_completed_job(
 
 def assert_lists_running_job(
     running_job: OcrdJob,
-    process_status: ProcessStatus,
     response: Response,
 ) -> None:
     texts = collect_texts_from_job_table(response.content, "running-jobs")
@@ -164,11 +137,7 @@ def assert_lists_running_job(
         str(running_job.task_id),
         str(running_job.process_id),
         running_job.workflow_file.name,
-        str(process_status.pid),
-        str(process_status.state),
-        str(process_status.percent_cpu),
-        str(process_status.memory),
-        str(process_status.cpu_time),
+        str(running_job.pid),
     ]
 
 

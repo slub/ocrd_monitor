@@ -47,7 +47,6 @@ class DevEnvironment:
     settings: Settings
     _repositories: Repositories
     _factory: BrowserTestDoubleFactory
-    controller_remote: RemoteServer = RemoteDummy()
 
     _app: TestClient = field(init=False)
 
@@ -59,9 +58,6 @@ class DevEnvironment:
 
     def browser_factory(self) -> OcrdBrowserFactory:
         return self._factory
-
-    def controller_server(self) -> RemoteServer:
-        return self.controller_remote
 
     @property
     def app(self) -> TestClient:
@@ -79,7 +75,6 @@ class Fixture:
     def __init__(self) -> None:
         self.browser_constructor: BrowserConstructor = BrowserSpy
         self.repo_constructor: RepositoryInitializer = inmemory_repository
-        self.remote_controller: RemoteServer = RemoteDummy()
         self.existing_browsers: list[BrowserTestDouble] = []
         self.session_id = ""
 
@@ -97,10 +92,6 @@ class Fixture:
         self.existing_browsers = list(browsers)
         return self
 
-    def with_controller_remote(self, remote: RemoteServer) -> Self:
-        self.remote_controller = remote
-        return self
-
     def with_session_id(self, session_id: str) -> Self:
         self.session_id = session_id
         return self
@@ -115,7 +106,6 @@ class Fixture:
             create_settings(),
             _factory=factory,
             _repositories=repositories,
-            controller_remote=self.remote_controller,
         )
 
         self._init_app(env.app)

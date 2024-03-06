@@ -34,12 +34,6 @@ RestoringFactories: dict[str, BrowserType] = {
 }
 
 
-class OcrdControllerSettings(BaseSettings):
-    host: str
-    user: str
-    port: int = 22
-    keyfile: Path = Path.home() / ".ssh" / "id_rsa"
-
 class OcrdManagerSettings(BaseSettings):
     url: str
 
@@ -78,7 +72,6 @@ class Settings(BaseSettings):
     monitor_db_connection_string: str
 
     ocrd_browser: OcrdBrowserSettings
-    ocrd_controller: OcrdControllerSettings
     ocrd_logview: OcrdLogViewSettings
     ocrd_manager: OcrdManagerSettings
 

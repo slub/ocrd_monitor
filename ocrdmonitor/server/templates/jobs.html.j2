@@ -32,27 +32,19 @@
             <th>PROCESS ID</th>
             <th>WORKFLOW</th>
             <th>PID</th>
-            <th>STATUS</th>
-            <th>% CPU</th>
-            <th>MB RSS</th>
-            <th>DURATION</th>
             <th>ACTION</th>
         </tr>
     </thead>
     <tbody>
         {% for job in running_jobs: %}
         <tr>
-            <td>{{ job.ocrd_job.time_created }}</td>
-            <td>{{ job.ocrd_job.task_id }}</td>
-            <td>{{ job.ocrd_job.process_id }}</td>
-            <td><a href="{{ url_for('workflows.detail', path=job.ocrd_job.workflow_file) }}">{{ job.ocrd_job.workflow
+            <td>{{ job.time_created }}</td>
+            <td>{{ job.task_id }}</td>
+            <td>{{ job.process_id }}</td>
+            <td><a href="{{ url_for('workflows.detail', path=job.workflow_file) }}">{{ job.workflow
                     }}</a></td>
-            <td>{{ job.process_status.pid }}</td>
-            <td>{{ job.process_status.state }}</td>
-            <td>{{ job.process_status.percent_cpu }}</td>
-            <td>{{ job.process_status.memory }}</td>
-            <td>{{ job.process_status.cpu_time }}</td>
-            <td><button onclick="killjob({{ job.process_status.pid }})">Kill!</button>
+            <td>{{ job.pid }}</td>
+            <td><button onclick="killjob({{ job.pid }})">Kill!</button>
             </td>
         </tr>
         {% endfor %}

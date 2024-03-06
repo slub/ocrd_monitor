@@ -40,6 +40,3 @@ class ProductionEnvironment:
     def browser_factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.settings.ocrd_browser.port_range))
         return CreatingFactories[self.settings.ocrd_browser.mode](port_range_set)
-
-    def controller_server(self) -> RemoteServer:
-        return SSHRemote(self.settings.ocrd_controller)

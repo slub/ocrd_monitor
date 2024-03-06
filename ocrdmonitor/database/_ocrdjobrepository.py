@@ -20,7 +20,6 @@ class MongoOcrdJob(Document):
     workdir: Path
     remotedir: str
     workflow_file: Path
-    controller_address: str
 
     class Settings:
         name = "OcrdJob"

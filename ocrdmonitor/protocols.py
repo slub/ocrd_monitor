@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Collection, NamedTuple, Protocol
 
 from ocrdbrowser import OcrdBrowser, OcrdBrowserFactory
-from ocrdmonitor.processstatus import ProcessStatus
 from ocrdmonitor.server.settings import Settings
 
 
@@ -49,7 +48,6 @@ class OcrdJob:
     workdir: Path
     remotedir: str
     workflow_file: Path
-    controller_address: str
 
     @property
     def is_running(self) -> bool:
@@ -72,13 +70,6 @@ class JobRepository(Protocol):
         ...
 
 
-class RemoteServer(Protocol):
-    async def read_file(self, path: str) -> str:
-        ...
-
-    async def process_status(self, process_group: int) -> list[ProcessStatus]:
-        ...
-
 class Repositories(NamedTuple):
     browser_processes: BrowserProcessRepository
     ocrd_jobs: JobRepository
@@ -91,7 +82,4 @@ class Environment(Protocol):
         ...
 
     def browser_factory(self) -> OcrdBrowserFactory:
-        ...
-
-    def controller_server(self) -> RemoteServer:
         ...

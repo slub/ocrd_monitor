@@ -28,7 +28,6 @@ def job_template() -> OcrdJob:
         workdir=Path("ocr-d/data/5432"),
         workflow_file=Path("ocr-workflow-default.sh"),
         remotedir="/remote/job/dir",
-        controller_address="controller.ocrdhost.com",
         time_created=created_at,
         time_terminated=terminated_at,
     )
@@ -61,7 +60,6 @@ async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resourc
     pid = 1234
     expected_status = make_status(pid)
     remote_stub = RemoteServerStub(expected_status)
-    fixture = repository_fixture.with_controller_remote(remote_stub)
 
     async with fixture as env:
         app = env.app

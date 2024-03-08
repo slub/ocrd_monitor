@@ -21,11 +21,8 @@ In order to work properly, the following **environment variables** must be set:
 
 | Variable            | Description                                                                      |
 | ------------------- | -------------------------------------------------------------------------------- |
-| CONTROLLER_HOST     | Hostname of the OCR-D Controller                                                 |
-| CONTROLLER_PORT_SSH | Port on the OCR-D Controller host that allows a SSH connection                   |
 | MANAGER_DATA        | Path to the OCR-D workspaces on the host                                         |
 | MANAGER_WORKFLOWS   | Path to the OCR-D workflows on the host                                          |
-| MANAGER_KEY         | Path to a private key that can be used to authenticate with the OCR-D Controller |
 | MONITOR_PORT_WEB    | The port at which the OCR-D Monitor will be available on the host                |
 | MONITOR_PORT_LOG    | The port at which the Dozzle logs will be available on the host                  |
 

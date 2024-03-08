@@ -10,7 +10,6 @@ import json
 import pytest
 from pytest_httpx import HTTPXMock
 
-from ocrdmonitor.processstatus import ProcessState, ProcessStatus
 from ocrdmonitor.protocols import OcrdJob
 from tests.ocrdmonitor.server import scraping
 from tests.ocrdmonitor.server.fixtures.environment import Fixture
@@ -28,7 +27,6 @@ def job_template() -> OcrdJob:
         workdir=Path("ocr-d/data/5432"),
         workflow_file=Path("ocr-workflow-default.sh"),
         remotedir="/remote/job/dir",
-        controller_address="controller.ocrdhost.com",
         time_created=created_at,
         time_terminated=terminated_at,
     )
@@ -45,13 +43,13 @@ async def test__given_a_completed_ocrd_job__the_job_endpoint_lists_it_in_a_table
     result_text: str,
 ) -> None:
     async with repository_fixture as env:
-        completed_job = replace(job_template(), return_code=return_code)
-        await env._repositories.ocrd_jobs.insert(completed_job)
+        job = completed_ocrd_job(return_code)
+        await env._repositories.ocrd_jobs.insert(job)
 
         response = env.app.get("/jobs/")
 
         assert response.is_success
-        assert_lists_completed_job(completed_job, result_text, response)
+        assert_lists_completed_job(job, result_text, response)
 
 
 @pytest.mark.asyncio
@@ -59,19 +57,15 @@ async def test__given_a_running_ocrd_job__the_job_endpoint_lists_it_with_resourc
     repository_fixture: Fixture,
 ) -> None:
     pid = 1234
-    expected_status = make_status(pid)
-    remote_stub = RemoteServerStub(expected_status)
-    fixture = repository_fixture.with_controller_remote(remote_stub)
 
-    async with fixture as env:
-        app = env.app
+    async with repository_fixture as env:
         job = running_ocrd_job(pid)
         await env._repositories.ocrd_jobs.insert(job)
 
-        response = app.get("/jobs/")
+        response = env.app.get("/jobs/")
 
         assert response.is_success
-        assert_lists_running_job(job, expected_status, response)
+        assert_lists_running_job(job, response)
 
 
 @pytest.mark.asyncio
@@ -110,33 +104,13 @@ def non_mocked_hosts() -> list[str]:
     return ["testserver"]
 
 
-def make_status(pid: int) -> ProcessStatus:
-    expected_status = ProcessStatus(
-        pid=pid,
-        state=ProcessState.RUNNING,
-        percent_cpu=0.25,
-        memory=1024,
-        cpu_time=timedelta(seconds=10, minutes=5, hours=1),
-    )
-
-    return expected_status
-
-
-class RemoteServerStub:
-    def __init__(self, expected_status: ProcessStatus) -> None:
-        self.expected_status = expected_status
-
-    async def read_file(self, path: str) -> str:
-        return str(self.expected_status.pid)
-
-    async def process_status(self, process_group: int) -> list[ProcessStatus]:
-        return [self.expected_status]
-
-
 def running_ocrd_job(pid: int) -> OcrdJob:
     running_job = replace(job_template(), pid=pid)
     return running_job
 
+def completed_ocrd_job(return_code: int) -> OcrdJob:
+    completed_job = replace(job_template(), return_code=return_code)
+    return completed_job
 
 def assert_lists_completed_job(
     completed_job: OcrdJob, result_text: str, response: Response
@@ -156,7 +130,6 @@ def assert_lists_completed_job(
 
 def assert_lists_running_job(
     running_job: OcrdJob,
-    process_status: ProcessStatus,
     response: Response,
 ) -> None:
     texts = collect_texts_from_job_table(response.content, "running-jobs")
@@ -166,11 +139,7 @@ def assert_lists_running_job(
         str(running_job.task_id),
         str(running_job.process_id),
         running_job.workflow_file.name,
-        str(process_status.pid),
-        str(process_status.state),
-        str(process_status.percent_cpu),
-        str(process_status.memory),
-        str(process_status.cpu_time),
+        str(running_job.pid),
     ]
 
 

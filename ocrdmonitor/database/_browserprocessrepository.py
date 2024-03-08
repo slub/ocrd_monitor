@@ -29,7 +29,7 @@ class MongoBrowserProcessRepository:
         self._restoring_factory = restoring_factory
 
     async def insert(self, browser: OcrdBrowser) -> None:
-        await BrowserProcess(  # type: ignore
+        await BrowserProcess(
             address=browser.address(),
             owner=browser.owner(),
             process_id=browser.process_id(),

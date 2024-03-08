@@ -9,9 +9,8 @@ from ocrdbrowser import (
     SubProcessOcrdBrowserFactory,
 )
 from ocrdmonitor import database
-from ocrdmonitor.protocols import RemoteServer, Repositories
+from ocrdmonitor.protocols import Repositories
 from ocrdmonitor.server.settings import Settings
-from ocrdmonitor.sshremote import SSHRemote
 
 BrowserType = Type[SubProcessOcrdBrowser] | Type[DockerOcrdBrowser]
 CreatingFactories: dict[str, Callable[[set[int]], OcrdBrowserFactory]] = {
@@ -40,6 +39,3 @@ class ProductionEnvironment:
     def browser_factory(self) -> OcrdBrowserFactory:
         port_range_set = set(range(*self.settings.ocrd_browser.port_range))
         return CreatingFactories[self.settings.ocrd_browser.mode](port_range_set)
-
-    def controller_server(self) -> RemoteServer:
-        return SSHRemote(self.settings.ocrd_controller)

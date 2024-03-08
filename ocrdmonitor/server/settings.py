@@ -34,12 +34,6 @@ RestoringFactories: dict[str, BrowserType] = {
 }
 
 
-class OcrdControllerSettings(BaseSettings):
-    host: str
-    user: str
-    port: int = 22
-    keyfile: Path = Path.home() / ".ssh" / "id_rsa"
-
 class OcrdManagerSettings(BaseSettings):
     url: str
 
@@ -69,7 +63,7 @@ class OcrdBrowserSettings(BaseSettings):
         if not int_pair or len(int_pair) != 2:
             raise ValueError("Port range must have exactly two values")
 
-        return int_pair  # type: ignore
+        return int_pair
 
 
 class Settings(BaseSettings):
@@ -78,7 +72,6 @@ class Settings(BaseSettings):
     monitor_db_connection_string: str
 
     ocrd_browser: OcrdBrowserSettings
-    ocrd_controller: OcrdControllerSettings
     ocrd_logview: OcrdLogViewSettings
     ocrd_manager: OcrdManagerSettings
 

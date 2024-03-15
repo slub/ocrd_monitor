@@ -10,7 +10,7 @@ def is_valid(workspace: str) -> bool:
     return (Path(workspace) / "mets.xml").exists()
 
 
-@path_cache
+# no way to update: @path_cache
 def list_all(path: Path) -> List[str]:
     # recursively enumerate METS file paths (excluding .backup subdirs)
     return [
